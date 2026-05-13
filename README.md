@@ -21,8 +21,10 @@ Node.js + Express + MongoDB (GridFS) backend designed for deployment on **Render
 Render will run `npm start` using the provided `Procfile`.
 
 Ensure Render Environment Variables include at least:
-- `MONGODB_URI`
+- `MONGODB_URI` (or `DATABASE_URL`)
 - `JWT_SECRET`
+
+Optional (recommended for seeded admin login):
 - `ADMIN_EMAIL`
 - `ADMIN_PASSWORD`
 
