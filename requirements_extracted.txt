@@ -1,0 +1,129 @@
+﻿NATIONAL DIGITAL BUILDING SYSTEM
+Project Requirements Document
+Version 1.0  •  May 12, 2026
+Document Title
+National Digital Building System – Project Requirements
+Version
+1.0
+Status
+Draft
+Prepared For
+Development & Stakeholder Review
+1.  Introduction
+The National Digital Building System is a web-based property rental platform designed to digitize and streamline the process of listing, leasing, and managing residential and commercial properties. The system connects four key actor groups — Admins, Property Managers, Tenants, and Visitors — within a secure, regulated environment.
+This document defines the functional and non-functional requirements, system actors and their responsibilities, data classes, and registration workflows for the platform.
+2.  System Requirements
+2.1  Functional Requirements
+#
+Requirement
+Description
+FR-01
+User Registration
+Support registration for four actor types: Admin, Property Manager, Tenant, and Visitor — each with distinct workflows and verification rules.
+FR-02
+Property Search & Filters
+Allow users to search property listings with filters (location, price, size, availability, etc.).
+FR-03
+Telebirr Payment Integration
+Enable tenants to pay rent and deposits via Telebirr. Provide instant payment confirmation to both parties.
+FR-04
+Lease Agreement Generation
+Automatically generate digital lease agreements based on property and tenant details; support review and signing by both parties.
+FR-05
+Complaint Submission
+Allow tenants to submit categorised complaints (with optional photo attachments) to property managers.
+FR-06
+Property Listing Management
+Allow property managers to add, update, and delete property listings including images, pricing, and unit details.
+2.2  Non-Functional Requirements
+#
+Requirement
+Detail
+NFR-01
+Performance
+Pages must load within acceptable response times under normal and peak load conditions.
+NFR-02
+Payment Verification
+Telebirr payment confirmations must be processed and displayed to users in real time.
+NFR-03
+Responsiveness
+The platform must be fully responsive and usable on mobile devices, tablets, and desktops.
+NFR-04
+Data Backup & Recovery
+All data must be regularly backed up with a defined recovery point objective (RPO) to prevent data loss.
+3.  System Actors & Responsibilities
+The system defines four distinct actor types. Each actor has a unique registration pathway and a specific set of permitted actions within the platform.
+Actor
+Registration Method
+Core Responsibilities
+Admin
+Credentials hard-coded into the system; no self-registration.
+Manage all users (Tenants, Property Managers, Visitors); track transactions per building; approve Property Manager registrations.
+Property Manager
+Self-registers; Admin reviews and approves after verifying property ownership proof and Telebirr merchant account.
+Add, update, delete property listings; generate lease agreements; manage tenants and active leases; handle tenant complaints.
+Tenant
+Invited by property manager via QR code; completes sign-up, signs lease, and gains access only after landlord approval.
+Search listings; rent a property; generate and sign lease agreements; pay via Telebirr; submit complaints.
+Visitor
+Self-registers with email and phone number; no approval required.
+Browse and search property listings (read-only access).
+4.  Registration Workflows
+4.1  Admin
+Admin credentials are pre-configured and hard-coded into the system at deployment. There is no self-registration flow for Admins.
+4.2  Property Manager
+Property Manager registration follows an admin-approval workflow:
+The applicant fills in the registration form with personal and business details.
+The applicant uploads proof of property ownership and their Telebirr merchant account credentials.
+The Admin reviews the submission and either approves or rejects it.
+Upon approval, the Property Manager account is activated and access is granted.
+4.3  Visitor
+Visitor registration is self-service and requires no approval:
+The visitor provides their full name, email address, and phone number.
+The account is created immediately with read-only access to property listings.
+4.4  Tenant
+Tenant registration is invitation-only and follows a multi-step workflow:
+The Property Manager generates a unique QR code for a specific unit and shares it with the prospective tenant.: Step 1 – QR Invite
+The tenant scans the QR code, which opens a form where they enter their email address and select the unit they wish to lease.: Step 2 – Tenant Initiates
+The system sends a personalised invitation link to the tenant's email address.: Step 3 – Invitation Link
+The tenant clicks the link and completes registration, providing their full name, kebele ID, phone number, and other required details.: Step 4 – Registration
+The tenant reviews and digitally signs the generated lease agreement.: Step 5 – Lease Signing
+The Property Manager reviews the signed agreement and approves the tenant, granting them full system access.: Step 6 – Landlord Approval
+5.  Data Classes
+The following table describes the primary data classes (entities) of the system and their key attributes.
+Class
+Key Attributes
+Notes
+Tenant
+tenant_id, full_name, kebele_id, email, phone_number
+Kebele ID is mandatory for identity verification during registration.
+Property Manager
+manager_id, full_name, email, phone_number
+Must hold a Telebirr merchant account; registration requires Admin approval.
+Admin
+admin_id, full_name, email
+Credentials are pre-configured in the system; no public registration.
+Visitor
+visitor_id, full_name, email, phone_number
+Limited to read-only search and browse functionality.
+Property
+property_id, name_of_compound, owner_name, street_address, square_meters, lease_price, images
+Managed by Property Managers; supports multiple image uploads.
+Complaint
+request_id, tenant_name, title, category, photo (optional)
+Submitted by tenants; routed to the responsible Property Manager.
+Transaction
+transaction_id, amount, timestamp
+Recorded for every Telebirr payment; linked to the relevant lease and property.
+6.  Actor Methods (System Functions)
+The table below maps each actor to the system functions they can perform.
+Actor
+Methods / System Functions
+Tenant
+Sign Up & Sign In · Rent a Property · Search Listings · Generate Lease Agreement · Pay via Telebirr · Submit Complaint
+Property Manager
+Sign Up & Sign In · Add / Update / Delete Property Listings · Handle Complaints · Generate Lease Agreement · Manage Tenants & Leases
+Admin
+Sign In · Manage Users (Tenants, Property Managers, Visitors) · Track Transactions per Building
+Visitor
+Sign Up & Sign In · Search Listings

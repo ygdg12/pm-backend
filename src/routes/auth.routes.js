@@ -1,0 +1,26 @@
+const express = require("express");
+const { authRequired } = require("../middlewares/auth");
+const { requireRole } = require("../middlewares/requireRole");
+const { loginController, registerManagerController, registerVisitorController } = require("../controllers/auth.controller");
+const { uploadFields } = require("../middlewares/upload");
+
+const router = express.Router();
+
+// Public
+router.post("/login", loginController);
+
+// Property Manager self-registration (admin approval required)
+router.post(
+  "/register/manager",
+  uploadFields([
+    { name: "propertyOwnershipProof", maxCount: 1 },
+    { name: "telebirrMerchantAccountProof", maxCount: 1 },
+  ]),
+  registerManagerController
+);
+
+// Visitor self-registration (read-only)
+router.post("/register/visitor", registerVisitorController);
+
+module.exports = router;
+
