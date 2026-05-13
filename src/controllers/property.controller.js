@@ -202,7 +202,7 @@ const createProperty = asyncHandler(async (req, res) => {
     throw badRequest(
       "Missing unit pricing. Either (1) add a Text field `units` with a JSON array: " +
         '[{"unit_label":"A1","square_meters":150,"lease_price":25000}], or (2) add Text fields for square meters and lease price ' +
-        '(e.g. \"Square meter\" + \"Lease price\") with positive numbers."
+        "(e.g. Square meter and Lease price) with positive numbers."
     );
   }
 
