@@ -1,0 +1,316 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-05-13T00:00:00.000Z",
+  "__export_source": "pm-backend",
+  "resources": [
+    {
+      "_type": "workspace",
+      "_id": "wrk_pm_lease_table1",
+      "name": "PM Backend — Lease application (table 1)",
+      "description": "Fill base_url, tenant_token, manager_token, lease_request_id in Environment. Login via POST /api/auth/login to copy JWTs.",
+      "scope": "collection"
+    },
+    {
+      "_type": "environment",
+      "_id": "env_pm_lease_table1",
+      "parentId": "wrk_pm_lease_table1",
+      "name": "Base Environment",
+      "data": {
+        "base_url": "http://localhost:3000",
+        "tenant_token": "",
+        "manager_token": "",
+        "lease_request_id": ""
+      },
+      "dataPropertyOrder": {
+        "&": ["base_url", "tenant_token", "manager_token", "lease_request_id"]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1
+    },
+    {
+      "_type": "request_group",
+      "_id": "fld_pm_lease_table1",
+      "parentId": "wrk_pm_lease_table1",
+      "name": "Lease requests (first table)",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1000
+    },
+    {
+      "_type": "request",
+      "_id": "req_pm_lr_create",
+      "parentId": "fld_pm_lease_table1",
+      "name": "1. Request lease (tenant)",
+      "description": "POST multipart. Set propertyId, unitId from a listing; attach ID file (nationalId or idDocument).",
+      "url": "{{ _.base_url }}/api/lease-requests",
+      "method": "POST",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "id": "pair_lr_prop",
+            "name": "propertyId",
+            "value": "",
+            "description": "Mongo _id of property",
+            "disabled": false,
+            "type": "text",
+            "multiline": false
+          },
+          {
+            "id": "pair_lr_unit",
+            "name": "unitId",
+            "value": "",
+            "description": "Mongo _id of unit subdocument",
+            "disabled": false,
+            "type": "text",
+            "multiline": false
+          },
+          {
+            "id": "pair_lr_move",
+            "name": "desiredMoveInDate",
+            "value": "2026-06-01",
+            "description": "ISO date",
+            "disabled": false,
+            "type": "text",
+            "multiline": false
+          },
+          {
+            "id": "pair_lr_dur",
+            "name": "leaseDurationMonths",
+            "value": "12",
+            "disabled": false,
+            "type": "text",
+            "multiline": false
+          },
+          {
+            "id": "pair_lr_occ",
+            "name": "numberOfOccupants",
+            "value": "2",
+            "disabled": false,
+            "type": "text",
+            "multiline": false
+          },
+          {
+            "id": "pair_lr_msg",
+            "name": "messageToLandlord",
+            "value": "We would like to view the unit.",
+            "disabled": false,
+            "type": "text",
+            "multiline": true
+          },
+          {
+            "id": "pair_lr_file",
+            "name": "nationalId",
+            "value": "",
+            "description": "Choose file: image or PDF",
+            "disabled": false,
+            "type": "file",
+            "fileName": ""
+          }
+        ]
+      },
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.tenant_token }}",
+        "disabled": false
+      },
+      "metaSortKey": -700,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_type": "request",
+      "_id": "req_pm_lr_me",
+      "parentId": "fld_pm_lease_table1",
+      "name": "2. List my applications (tenant)",
+      "url": "{{ _.base_url }}/api/lease-requests/me",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.tenant_token }}",
+        "disabled": false
+      },
+      "metaSortKey": -600,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_type": "request",
+      "_id": "req_pm_lr_get",
+      "parentId": "fld_pm_lease_table1",
+      "name": "3. Get one application (tenant/manager/admin)",
+      "description": "Paste lease_request_id from /me or manager inbox.",
+      "url": "{{ _.base_url }}/api/lease-requests/{{ _.lease_request_id }}",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.tenant_token }}",
+        "disabled": false
+      },
+      "metaSortKey": -500,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_type": "request",
+      "_id": "req_pm_lr_inbox",
+      "parentId": "fld_pm_lease_table1",
+      "name": "4. Manager queue (inbox)",
+      "description": "Optional query: propertyId, status",
+      "url": "{{ _.base_url }}/api/lease-requests/manager/inbox",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "id": "pair_q_prop",
+          "name": "propertyId",
+          "value": "",
+          "description": "optional filter",
+          "disabled": true,
+          "type": "text"
+        },
+        {
+          "id": "pair_q_stat",
+          "name": "status",
+          "value": "pending_review",
+          "description": "optional: pending_review, under_review, ...",
+          "disabled": true,
+          "type": "text"
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "disabled": false
+      },
+      "metaSortKey": -400,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_type": "request",
+      "_id": "req_pm_lr_review",
+      "parentId": "fld_pm_lease_table1",
+      "name": "5. Manager review (PATCH)",
+      "description": "Edit JSON: action one of mark_under_review | reject | request_additional_documents | schedule_meeting | approve_digital. Include fields required for that action.",
+      "url": "{{ _.base_url }}/api/lease-requests/{{ _.lease_request_id }}/review",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"action\": \"mark_under_review\"\n}"
+      },
+      "parameters": [],
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "disabled": false
+      },
+      "metaSortKey": -300,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_type": "request",
+      "_id": "req_pm_lr_additional",
+      "parentId": "fld_pm_lease_table1",
+      "name": "6. Upload additional documents (tenant)",
+      "description": "Only when status is additional_documents_requested. Multipart: additionalDocument files.",
+      "url": "{{ _.base_url }}/api/lease-requests/{{ _.lease_request_id }}/additional-documents",
+      "method": "POST",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "id": "pair_add_doc",
+            "name": "additionalDocument",
+            "value": "",
+            "description": "Attach file(s); repeat field name for multiple in some clients",
+            "disabled": false,
+            "type": "file",
+            "fileName": ""
+          }
+        ]
+      },
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.tenant_token }}",
+        "disabled": false
+      },
+      "metaSortKey": -200,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    },
+    {
+      "_type": "request",
+      "_id": "req_pm_lr_complete",
+      "parentId": "fld_pm_lease_table1",
+      "name": "7. Complete physical lease (manager)",
+      "description": "JSON or multipart. Optional: digitalCopy, signedContractPhoto files.",
+      "url": "{{ _.base_url }}/api/lease-requests/{{ _.lease_request_id }}/complete-physical",
+      "method": "PATCH",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"physicalCompletionNotes\": \"ID verified, deposit received, keys handed over.\",\n  \"tenantSignatoryName\": \"Tenant Full Name\",\n  \"managerSignatoryName\": \"Manager Full Name\"\n}"
+      },
+      "parameters": [],
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.manager_token }}",
+        "disabled": false
+      },
+      "metaSortKey": -100,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global"
+    }
+  ]
+}

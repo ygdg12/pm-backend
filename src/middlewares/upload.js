@@ -72,20 +72,9 @@ const leaseRequestDocMulter = multer({
   fileFilter: managerProofFileFilter,
 });
 
-const LEASE_REQUEST_ID_FIELDS = [
-  { name: "nationalId", maxCount: 1 },
-  { name: "national_id", maxCount: 1 },
-  { name: "idDocument", maxCount: 1 },
-  { name: "id_document", maxCount: 1 },
-  { name: "passport", maxCount: 1 },
-];
-
+/** Accept any part names (Insomnia/Postman vary); controller picks ID file by known aliases. */
 function uploadLeaseRequestCreateFiles() {
-  return leaseRequestDocMulter.fields([
-    ...LEASE_REQUEST_ID_FIELDS,
-    { name: "additionalDocument", maxCount: 5 },
-    { name: "additional_document", maxCount: 5 },
-  ]);
+  return leaseRequestDocMulter.any();
 }
 
 function uploadLeaseRequestCompletePhysical() {

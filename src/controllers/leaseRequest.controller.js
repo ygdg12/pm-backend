@@ -50,18 +50,27 @@ async function syncTenantLeaseAccountStatus(tenantId) {
   }
 }
 
+function normField(name) {
+  return String(name || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
 function firstUploadedBuffer(files, names) {
   if (!files || !files.length) return null;
-  for (const name of names) {
-    const hit = files.find((f) => f.fieldname === name);
-    if (hit && hit.buffer) return hit;
+  const wanted = new Set(names.map((n) => normField(n)));
+  for (const f of files) {
+    if (!f.buffer) continue;
+    if (wanted.has(normField(f.fieldname))) return f;
   }
   return null;
 }
 
 function collectFieldFiles(files, names) {
   if (!files || !files.length) return [];
-  return files.filter((f) => names.includes(f.fieldname) && f.buffer);
+  const wanted = new Set(names.map((n) => normField(n)));
+  return files.filter((f) => wanted.has(normField(f.fieldname)) && f.buffer);
 }
 
 function parseDate(v, label) {
@@ -122,9 +131,17 @@ const createLeaseRequest = asyncHandler(async (req, res) => {
     "national_id",
     "idDocument",
     "id_document",
+    "iddocument",
     "passport",
+    "file",
+    "photo",
+    "upload",
   ]);
-  if (!idPart) throw badRequest("National ID or passport file is required (field: nationalId or idDocument)");
+  if (!idPart) {
+    throw badRequest(
+      "National ID or passport file is required. Use a multipart file field such as: nationalId, national_id, idDocument, id_document, or passport."
+    );
+  }
 
   const property = await Property.findById(propertyId).exec();
   if (!property) throw notFound("Property not found");

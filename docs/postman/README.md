@@ -29,20 +29,32 @@ Set Bearer token in Authorization tab for protected endpoints.
 - [POST /api/leases/:id/sign/tenant](./POST-api-leases-id-sign-tenant.md)
 - [POST /api/leases/:id/sign/manager](./POST-api-leases-id-sign-manager.md)
 
-## 5) Complaints
+## 5) Lease requests (application flow)
+
+Step **7** (appointment after digital approval) uses the same **GET `/me`** and **GET `/:id`** responses — see those docs for response field names.
+
+- [POST /api/lease-requests](./POST-api-lease-requests.md)
+- [GET /api/lease-requests/me](./GET-api-lease-requests-me.md)
+- [GET /api/lease-requests/:id](./GET-api-lease-requests-id.md)
+- [GET /api/lease-requests/manager/inbox](./GET-api-lease-requests-manager-inbox.md)
+- [PATCH /api/lease-requests/:id/review](./PATCH-api-lease-requests-id-review.md)
+- [POST /api/lease-requests/:id/additional-documents](./POST-api-lease-requests-id-additional-documents.md)
+- [PATCH /api/lease-requests/:id/complete-physical](./PATCH-api-lease-requests-id-complete-physical.md)
+
+## 6) Complaints
 - [POST /api/complaints](./POST-api-complaints.md)
 - [GET /api/complaints/me](./GET-api-complaints-me.md)
 - [GET /api/complaints](./GET-api-complaints.md)
 
-## 6) Payments (Telebirr)
+## 7) Payments (Telebirr)
 - [POST /api/payments/telebirr/initiate](./POST-api-payments-telebirr-initiate.md)
 - [GET /api/payments/me](./GET-api-payments-me.md)
 - [POST /api/payments/telebirr/webhook](./POST-api-payments-telebirr-webhook.md)
 
-## 7) Files
+## 8) Files
 - [GET /api/files/:id](./GET-api-files-id.md)
 
-## 8) Admin
+## 9) Admin
 - [GET /api/admin/managers/pending](./GET-api-admin-managers-pending.md)
 - [PATCH /api/admin/managers/:id/approve](./PATCH-api-admin-managers-id-approve.md)
 - [PATCH /api/admin/managers/:id/reject](./PATCH-api-admin-managers-id-reject.md)
