@@ -8,7 +8,6 @@ const { env } = require("./config/env");
 const { errorHandler } = require("./middlewares/errorHandler");
 
 const authRoutes = require("./routes/auth.routes");
-const inviteRoutes = require("./routes/invite.routes");
 const propertyRoutes = require("./routes/property.routes");
 const leaseRoutes = require("./routes/lease.routes");
 const complaintRoutes = require("./routes/complaint.routes");
@@ -51,7 +50,6 @@ function createApp() {
   app.use(express.json({ limit: env.UPLOAD_MAX_BYTES }));
 
   app.use("/api/auth", authRoutes);
-  app.use("/api/invites", inviteRoutes);
   app.use("/api/properties", propertyRoutes);
   app.use("/api/leases", leaseRoutes);
   app.use("/api/complaints", complaintRoutes);

@@ -1,5 +1,5 @@
 const { asyncHandler } = require("../utils/asyncHandler");
-const { login, registerManager, registerVisitor } = require("../services/auth.service");
+const { login, registerManager, registerVisitor, registerTenant } = require("../services/auth.service");
 const { uploadBufferToGridFS } = require("../services/gridfs.service");
 const { badRequest } = require("../utils/httpError");
 
@@ -75,9 +75,26 @@ const registerVisitorController = asyncHandler(async (req, res) => {
   res.status(201).json({ token, user: formatUserSafe(user) });
 });
 
+const registerTenantController = asyncHandler(async (req, res) => {
+  const { fullName, email, phoneNumber, password, kebeleId } = req.body || {};
+  if (!fullName || !email || !phoneNumber || !password || !kebeleId) {
+    throw badRequest("fullName, email, phoneNumber, password and kebeleId are required");
+  }
+
+  const { user, token } = await registerTenant({
+    fullName,
+    email,
+    phoneNumber,
+    password,
+    kebeleId,
+  });
+  res.status(201).json({ token, user: formatUserSafe(user) });
+});
+
 module.exports = {
   loginController,
   registerManagerController,
   registerVisitorController,
+  registerTenantController,
 };
 

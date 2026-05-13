@@ -6,7 +6,7 @@ Node.js + Express + MongoDB (GridFS) backend designed for deployment on **Render
 - Role-based accounts: **Admin**, **Property Manager**, **Tenant**, **Visitor**
 - Property search + filters
 - Property manager: CRUD property listings + unit details + image uploads
-- Tenant onboarding via **QR invite token**
+- Tenant self-registration via **`POST /api/auth/register/tenant`** (same idea as visitor signup; **kebeleId** required)
 - Digital lease agreement generation + signing by tenant and manager
 - Complaint submission (optional photo)
 - Telebirr payment endpoints (initiate + webhook with signature verification stub)
@@ -30,7 +30,6 @@ If admin login returns `401 Invalid email or password`, check that those two var
 
 ## API base
 - `/api/auth/*`
-- `/api/invites/*`
 - `/api/properties/*`
 - `/api/leases/*`
 - `/api/complaints/*`

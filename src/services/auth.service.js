@@ -114,8 +114,11 @@ async function registerVisitor({ fullName, email, phoneNumber, password }) {
 }
 
 async function registerTenant({ fullName, kebeleId, email, phoneNumber, password }) {
+  if (!fullName) throw badRequest("fullName is required");
   if (!email) throw badRequest("email is required");
   if (!password) throw badRequest("password is required");
+  if (!phoneNumber) throw badRequest("phoneNumber is required");
+  if (!kebeleId) throw badRequest("kebeleId is required");
 
   const emailNorm = normalizeEmail(email);
   if (!emailNorm) throw badRequest("email is required");
@@ -126,15 +129,21 @@ async function registerTenant({ fullName, kebeleId, email, phoneNumber, password
   const passwordHash = await hashPassword(password);
   const user = await User.create({
     role: "tenant",
-    accountStatus: "pending_approval",
+    accountStatus: "active",
     fullName,
-    kebeleId,
+    kebeleId: String(kebeleId).trim(),
     email: emailNorm,
     phoneNumber,
     passwordHash,
   });
 
-  return user;
+  const token = signToken({
+    userId: user._id.toString(),
+    role: user.role,
+    email: user.email,
+    fullName: user.fullName,
+  });
+  return { user, token };
 }
 
 async function seedAdmin({ email, password }) {
