@@ -11,6 +11,42 @@ const unitSchema = z.object({
   availability: z.coerce.boolean().optional().default(true),
 });
 
+const unitsArraySchema = z.array(unitSchema).min(1, "At least one unit is required with square_meters and lease_price");
+
+function assertCompletePropertyListing(data) {
+  const name = String(data.name_of_compound ?? "").trim();
+  const owner = String(data.owner_name ?? "").trim();
+  const street = String(data.street_address ?? "").trim();
+  const missing = [];
+  if (!name) missing.push("name_of_compound (name of compound)");
+  if (!owner) missing.push("owner_name (name of property owner)");
+  if (!street) missing.push("street_address");
+  const units = data.units;
+  if (!Array.isArray(units) || units.length === 0) {
+    missing.push("at least one unit (each needs unit_label, square_meters, lease_price)");
+  } else {
+    units.forEach((u, i) => {
+      const label = String(u.unit_label ?? "").trim();
+      const sq = Number(u.square_meters);
+      const price = Number(u.lease_price);
+      if (!label) missing.push(`unit[${i}].unit_label`);
+      if (!(sq > 0)) missing.push(`unit[${i}].square_meters (must be a positive number)`);
+      if (!(price > 0)) missing.push(`unit[${i}].lease_price (must be a positive number)`);
+    });
+  }
+  const images = data.images;
+  if (!Array.isArray(images) || images.length === 0) {
+    missing.push("at least one image file");
+  }
+  if (missing.length) {
+    throw badRequest(
+      `Listing incomplete. All of the following are required: street address, name of compound, name of property owner, square meters and lease price per unit, and images. Missing or invalid: ${missing.join(
+        ", "
+      )}`
+    );
+  }
+}
+
 function parseMaybeJson(value) {
   if (value === undefined || value === null) return undefined;
   if (typeof value !== "string") return value;
@@ -22,10 +58,9 @@ function parseMaybeJson(value) {
 }
 
 const createProperty = asyncHandler(async (req, res) => {
-  const { name_of_compound, owner_name, street_address } = req.body || {};
   const unitsRaw = parseMaybeJson(req.body?.units);
 
-  const unitsParsed = unitSchema.array().safeParse(unitsRaw);
+  const unitsParsed = unitsArraySchema.safeParse(unitsRaw);
   if (!unitsParsed.success) {
     throw badRequest("Invalid units payload", unitsParsed.error.flatten());
   }
@@ -41,10 +76,23 @@ const createProperty = asyncHandler(async (req, res) => {
     images.push(fileId);
   }
 
+  const name_of_compound = String(req.body?.name_of_compound ?? "").trim();
+  const owner_name = String(req.body?.owner_name ?? "").trim();
+  const street_address = String(req.body?.street_address ?? "").trim();
+
+  const draft = {
+    name_of_compound,
+    owner_name,
+    street_address,
+    units: unitsParsed.data,
+    images,
+  };
+  assertCompletePropertyListing(draft);
+
   const property = await Property.create({
     managerId: req.user.userId,
     name_of_compound,
-    owner_name: owner_name || "",
+    owner_name,
     street_address,
     units: unitsParsed.data,
     images,
@@ -66,16 +114,23 @@ const updateProperty = asyncHandler(async (req, res) => {
   const { name_of_compound, owner_name, street_address } = req.body || {};
   const unitsRaw = parseMaybeJson(req.body?.units);
 
-  if (!name_of_compound && !owner_name && !street_address && unitsRaw === undefined && (!req.files || req.files.length === 0)) {
+  const hasAnyField =
+    name_of_compound !== undefined ||
+    owner_name !== undefined ||
+    street_address !== undefined ||
+    unitsRaw !== undefined ||
+    (req.files && req.files.length > 0);
+
+  if (!hasAnyField) {
     throw badRequest("No update fields provided");
   }
 
-  if (name_of_compound !== undefined) property.name_of_compound = name_of_compound;
-  if (owner_name !== undefined) property.owner_name = owner_name;
-  if (street_address !== undefined) property.street_address = street_address;
+  if (name_of_compound !== undefined) property.name_of_compound = String(name_of_compound).trim();
+  if (owner_name !== undefined) property.owner_name = String(owner_name).trim();
+  if (street_address !== undefined) property.street_address = String(street_address).trim();
 
   if (unitsRaw !== undefined) {
-    const unitsParsed = unitSchema.array().safeParse(unitsRaw);
+    const unitsParsed = unitsArraySchema.safeParse(unitsRaw);
     if (!unitsParsed.success) throw badRequest("Invalid units payload", unitsParsed.error.flatten());
     property.units = unitsParsed.data;
   }
@@ -94,6 +149,14 @@ const updateProperty = asyncHandler(async (req, res) => {
     }
     property.images = images;
   }
+
+  assertCompletePropertyListing({
+    name_of_compound: property.name_of_compound,
+    owner_name: property.owner_name,
+    street_address: property.street_address,
+    units: property.units,
+    images: property.images,
+  });
 
   await property.save();
   res.json({ property });

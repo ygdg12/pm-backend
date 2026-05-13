@@ -6,12 +6,17 @@
 - Auth: Bearer manager token
 - Content-Type: multipart/form-data
 
+## Rules
+- Send at least one field to update.
+- After the update, the listing must still satisfy **all** required rules (same as create): compound name, owner name, street address, at least one unit with square meters and lease price, and at least one image. If your change would leave the property incomplete, the request fails with **400**.
+
 ## Body
 ```
 Any of: name_of_compound, owner_name, street_address, units(JSON), images(file[])
 ```
 
+If you replace images, you must upload at least one new image file.
+
 ## Expected Result
-- Update own property.
-- Success status: 200 or 201 depending on endpoint.
-- On validation/auth errors: 400, 401, 403, 404.
+- **200** on success.
+- **400** if validation fails.

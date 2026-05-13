@@ -15,7 +15,7 @@ const propertySchema = new mongoose.Schema(
     managerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
 
     name_of_compound: { type: String, trim: true, required: true },
-    owner_name: { type: String, trim: true },
+    owner_name: { type: String, trim: true, required: true },
     street_address: { type: String, trim: true, required: true },
 
     units: { type: [unitSchema], default: [] },
