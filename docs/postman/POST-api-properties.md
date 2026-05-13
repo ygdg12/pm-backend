@@ -13,7 +13,7 @@
 | Name of compound | `name_of_compound` | Text, non-empty |
 | Name of property owner | `owner_name` | Text, non-empty |
 | Street address | `street_address` | Text, non-empty |
-| Square meters & lease price | `units` | JSON array string; at least **one** unit, each with `unit_label`, `square_meters` (>0), `lease_price` (>0) |
+| Square meters & lease price | `units` (required) | **Text** field (not File). Value must be a **JSON array string**, e.g. `[{"unit_label":"A1","square_meters":120,"lease_price":15000}]`. Alternate names: `property_units`, `unitList`. |
 | Images | `images`, `image`, `photos`, etc. | At least **one** `image/*` file. Up to **10** files; any multipart **File** field name is accepted (Insomnia often uses `file`). |
 
 ### Example `units` value (string in multipart)

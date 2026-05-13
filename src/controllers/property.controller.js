@@ -47,14 +47,46 @@ function assertCompletePropertyListing(data) {
   }
 }
 
-function parseMaybeJson(value) {
-  if (value === undefined || value === null) return undefined;
-  if (typeof value !== "string") return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
+/** Multipart text fields: accept units, Units, property_units, etc. */
+function pickUnitsFromBody(body) {
+  if (!body || typeof body !== "object") return undefined;
+  const preferred = ["units", "propertyUnits", "property_units", "unitList", "unitsJson", "units_json"];
+  for (const key of preferred) {
+    const v = body[key];
+    if (v !== undefined && v !== null && String(v).trim() !== "") return v;
   }
+  for (const [k, v] of Object.entries(body)) {
+    if (k.toLowerCase() === "units" && v !== undefined && v !== null && String(v).trim() !== "") return v;
+  }
+  return undefined;
+}
+
+/** Turn multipart / JSON value into an array for Zod, or undefined if missing. */
+function coerceUnitsPayload(raw) {
+  if (raw === undefined || raw === null) return undefined;
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === "string") {
+    const t = raw.trim();
+    if (!t) return undefined;
+    try {
+      return JSON.parse(t);
+    } catch {
+      return undefined;
+    }
+  }
+  if (typeof raw === "object") return raw;
+  return undefined;
+}
+
+function parseUnitsFromRequest(body) {
+  const picked = pickUnitsFromBody(body);
+  let data = coerceUnitsPayload(picked);
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    if (data.unit_label != null || data.square_meters != null || data.lease_price != null) {
+      data = [data];
+    }
+  }
+  return data;
 }
 
 function normalizePropertyUploadFiles(req) {
@@ -69,11 +101,22 @@ function normalizePropertyUploadFiles(req) {
 }
 
 const createProperty = asyncHandler(async (req, res) => {
-  const unitsRaw = parseMaybeJson(req.body?.units);
+  const unitsData = parseUnitsFromRequest(req.body);
+  if (unitsData === undefined) {
+    throw badRequest(
+      "Missing `units`. Add a **Text** field in multipart named `units` (or `property_units`) whose value is a **JSON array** string, e.g. " +
+        '[{"unit_label":"A1","square_meters":120,"lease_price":15000}]. ' +
+        "Each unit needs unit_label, square_meters (>0), and lease_price (>0)."
+    );
+  }
 
-  const unitsParsed = unitsArraySchema.safeParse(unitsRaw);
+  const unitsParsed = unitsArraySchema.safeParse(unitsData);
   if (!unitsParsed.success) {
-    throw badRequest("Invalid units payload", unitsParsed.error.flatten());
+    throw badRequest(
+      "Invalid units payload. Expected a JSON array of objects with unit_label, square_meters, lease_price (all positive). " +
+        "Example: [{\"unit_label\":\"A1\",\"square_meters\":120,\"lease_price\":15000}]",
+      unitsParsed.error.flatten()
+    );
   }
 
   const images = [];
@@ -123,14 +166,14 @@ const updateProperty = asyncHandler(async (req, res) => {
   }
 
   const { name_of_compound, owner_name, street_address } = req.body || {};
-  const unitsRaw = parseMaybeJson(req.body?.units);
+  const unitsData = parseUnitsFromRequest(req.body);
 
   const hasAnyField =
     name_of_compound !== undefined ||
     owner_name !== undefined ||
     street_address !== undefined ||
-    unitsRaw !== undefined ||
-    (req.files && req.files.length > 0);
+    unitsData !== undefined ||
+    (Array.isArray(req.files) && req.files.length > 0);
 
   if (!hasAnyField) {
     throw badRequest("No update fields provided");
@@ -140,8 +183,8 @@ const updateProperty = asyncHandler(async (req, res) => {
   if (owner_name !== undefined) property.owner_name = String(owner_name).trim();
   if (street_address !== undefined) property.street_address = String(street_address).trim();
 
-  if (unitsRaw !== undefined) {
-    const unitsParsed = unitsArraySchema.safeParse(unitsRaw);
+  if (unitsData !== undefined) {
+    const unitsParsed = unitsArraySchema.safeParse(unitsData);
     if (!unitsParsed.success) throw badRequest("Invalid units payload", unitsParsed.error.flatten());
     property.units = unitsParsed.data;
   }
