@@ -3,7 +3,7 @@ const { badRequest, notFound } = require("../utils/httpError");
 const TenantInvite = require("../models/TenantInvite");
 const Property = require("../models/Property");
 const LeaseAgreement = require("../models/LeaseAgreement");
-const { registerTenant } = require("../services/auth.service");
+const { registerTenant, normalizeEmail } = require("../services/auth.service");
 const { renderLeaseHtml } = require("../services/leaseTemplate.service");
 const { generateInviteQRCode } = require("../services/qr.service");
 const { signToken } = require("../utils/jwt");
@@ -16,6 +16,8 @@ function buildInviteUrl(req, token) {
 const createInviteController = asyncHandler(async (req, res) => {
   const { propertyId, unitId, tenantEmail, expiresInMinutes } = req.body || {};
   if (!propertyId || !unitId || !tenantEmail) throw badRequest("propertyId, unitId, tenantEmail are required");
+  const tenantEmailNorm = normalizeEmail(tenantEmail);
+  if (!tenantEmailNorm) throw badRequest("tenantEmail is invalid");
 
   const property = await Property.findById(propertyId).exec();
   if (!property) throw notFound("Property not found");
@@ -32,7 +34,7 @@ const createInviteController = asyncHandler(async (req, res) => {
 
   const invite = await TenantInvite.create({
     token,
-    tenantEmail,
+    tenantEmail: tenantEmailNorm,
     managerId: property.managerId,
     propertyId: property._id,
     unitId,

@@ -13,5 +13,6 @@
 
 ## Expected Result
 - Creates visitor account and returns token.
+- Email is stored **lowercase**; login accepts any casing (e.g. register `User@Mail.com`, login `user@mail.com`).
 - Success status: 200 or 201 depending on endpoint.
 - On validation/auth errors: 400, 401, 403, 404.
