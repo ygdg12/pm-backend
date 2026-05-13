@@ -6,27 +6,35 @@
 - Auth: Bearer manager token
 - Content-Type: multipart/form-data
 
-## Required fields (all must be present)
+## Option A — Human labels (Insomnia-friendly)
 
-| Human label | Form field | Notes |
-|-------------|------------|--------|
-| Name of compound | `name_of_compound` | Text, non-empty |
-| Name of property owner | `owner_name` | Text, non-empty |
-| Street address | `street_address` | Text, non-empty |
-| Square meters & lease price | `units` (required) | **Text** field (not File). Value must be a **JSON array string**, e.g. `[{"unit_label":"A1","square_meters":120,"lease_price":15000}]`. Alternate names: `property_units`, `unitList`. |
-| Images | `images`, `image`, `photos`, etc. | At least **one** `image/*` file. Up to **10** files; any multipart **File** field name is accepted (Insomnia often uses `file`). |
+Use **Text** fields with these labels (spaces OK). **No JSON `units` required** if you send square meters + lease price as separate numbers.
 
-### Example `units` value (string in multipart)
+| Label (example) | Maps to |
+|------------------|---------|
+| Name of the compound / name_of_compound | compound name |
+| Name of the property owner / owner_name | owner |
+| Street address / street_address | address |
+| Square meter / square meters / square_meters | size (m²) |
+| Lease price / lease_price / rent | monthly rent |
+| Images / images / file | at least one **image** file |
 
-```json
-[{"unit_label":"A1","square_meters":120,"lease_price":15000,"availability":true}]
-```
+Optional: **Unit label** — if omitted, the server uses `Unit 1`.
 
-## Body
-```
-name_of_compound, owner_name, street_address, units (JSON string), image files (any field names, e.g. images or file — max 10, image/* only)
-```
+## Option B — API field names + JSON `units`
+
+| Field | Type |
+|-------|------|
+| `name_of_compound`, `owner_name`, `street_address` | Text |
+| `units` | Text: JSON array string `[{"unit_label":"A1","square_meters":150,"lease_price":25000}]` |
+| Any image field name(s) | File(s), `image/*`, max 10 |
+
+## Required result
+
+- Compound name, owner name, street address (non-empty)
+- At least one unit with positive **square_meters** and **lease_price** (from flat fields or JSON)
+- At least one image
 
 ## Expected Result
-- **201** when all required fields are valid.
-- **400** if anything is missing (error message lists what failed).
+- **201** when valid.
+- **400** with details if something is missing or invalid.

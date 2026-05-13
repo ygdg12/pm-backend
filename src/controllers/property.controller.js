@@ -47,6 +47,91 @@ function assertCompletePropertyListing(data) {
   }
 }
 
+/** Normalize multipart field names for fuzzy matching (Insomnia human labels). */
+function normField(name) {
+  return String(name || "")
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Find first body value whose key matches any alias (human-readable or API). */
+function valueForFieldAliases(body, aliases) {
+  if (!body || typeof body !== "object") return undefined;
+  const want = aliases.map((a) => normField(a));
+  for (const [k, v] of Object.entries(body)) {
+    if (v === undefined || v === null) continue;
+    const nk = normField(k);
+    const compact = nk.replace(/ /g, "");
+    for (const w of want) {
+      if (nk === w || compact === w.replace(/ /g, "")) {
+        return v;
+      }
+    }
+  }
+  return undefined;
+}
+
+function parsePositiveNumber(value) {
+  if (value === undefined || value === null) return null;
+  const n = Number(String(value).replace(/,/g, "").trim());
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n;
+}
+
+/** One unit from flat "Square meter" + "Lease price" style forms (no JSON `units`). */
+function buildSingleUnitFromFlatBody(body) {
+  const sq = parsePositiveNumber(
+    valueForFieldAliases(body, [
+      "square_meters",
+      "square meter",
+      "square meters",
+      "sqm",
+      "size",
+      "area",
+    ])
+  );
+  const price = parsePositiveNumber(
+    valueForFieldAliases(body, [
+      "lease_price",
+      "lease price",
+      "rent",
+      "price",
+      "monthly rent",
+      "rent amount",
+    ])
+  );
+  if (sq === null || price === null) return undefined;
+  const labelRaw = valueForFieldAliases(body, ["unit_label", "unit label", "unit", "apartment", "listing unit"]);
+  const unit_label =
+    labelRaw != null && String(labelRaw).trim() ? String(labelRaw).trim() : "Unit 1";
+  return [{ unit_label, square_meters: sq, lease_price: price, availability: true }];
+}
+
+function pickCompoundFields(body) {
+  const name = valueForFieldAliases(body, [
+    "name_of_compound",
+    "name of compound",
+    "name of the compound",
+    "compound name",
+    "compound",
+  ]);
+  const owner = valueForFieldAliases(body, [
+    "owner_name",
+    "name of property owner",
+    "name of the property owner",
+    "property owner",
+    "owner",
+  ]);
+  const street = valueForFieldAliases(body, ["street_address", "street address", "address", "location"]);
+  return {
+    name_of_compound: String(name ?? body?.name_of_compound ?? "").trim(),
+    owner_name: String(owner ?? body?.owner_name ?? "").trim(),
+    street_address: String(street ?? body?.street_address ?? "").trim(),
+  };
+}
+
 /** Multipart text fields: accept units, Units, property_units, etc. */
 function pickUnitsFromBody(body) {
   if (!body || typeof body !== "object") return undefined;
@@ -69,7 +154,10 @@ function coerceUnitsPayload(raw) {
     const t = raw.trim();
     if (!t) return undefined;
     try {
-      return JSON.parse(t);
+      const parsed = JSON.parse(t);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)) return parsed;
+      return undefined;
     } catch {
       return undefined;
     }
@@ -86,7 +174,15 @@ function parseUnitsFromRequest(body) {
       data = [data];
     }
   }
-  return data;
+  if (Array.isArray(data) && data.length > 0) return data;
+  return undefined;
+}
+
+/** JSON `units` array, OR flat Square meter + Lease price fields (Insomnia-friendly). */
+function resolveUnitsArray(body) {
+  const fromJson = parseUnitsFromRequest(body);
+  if (Array.isArray(fromJson) && fromJson.length > 0) return fromJson;
+  return buildSingleUnitFromFlatBody(body);
 }
 
 function normalizePropertyUploadFiles(req) {
@@ -101,12 +197,12 @@ function normalizePropertyUploadFiles(req) {
 }
 
 const createProperty = asyncHandler(async (req, res) => {
-  const unitsData = parseUnitsFromRequest(req.body);
-  if (unitsData === undefined) {
+  const unitsData = resolveUnitsArray(req.body);
+  if (unitsData === undefined || !Array.isArray(unitsData) || unitsData.length === 0) {
     throw badRequest(
-      "Missing `units`. Add a **Text** field in multipart named `units` (or `property_units`) whose value is a **JSON array** string, e.g. " +
-        '[{"unit_label":"A1","square_meters":120,"lease_price":15000}]. ' +
-        "Each unit needs unit_label, square_meters (>0), and lease_price (>0)."
+      "Missing unit pricing. Either (1) add a Text field `units` with a JSON array: " +
+        '[{"unit_label":"A1","square_meters":150,"lease_price":25000}], or (2) add Text fields for square meters and lease price ' +
+        '(e.g. \"Square meter\" + \"Lease price\") with positive numbers."
     );
   }
 
@@ -130,9 +226,7 @@ const createProperty = asyncHandler(async (req, res) => {
     images.push(fileId);
   }
 
-  const name_of_compound = String(req.body?.name_of_compound ?? "").trim();
-  const owner_name = String(req.body?.owner_name ?? "").trim();
-  const street_address = String(req.body?.street_address ?? "").trim();
+  const { name_of_compound, owner_name, street_address } = pickCompoundFields(req.body);
 
   const draft = {
     name_of_compound,
@@ -166,12 +260,16 @@ const updateProperty = asyncHandler(async (req, res) => {
   }
 
   const { name_of_compound, owner_name, street_address } = req.body || {};
-  const unitsData = parseUnitsFromRequest(req.body);
+  const loose = pickCompoundFields(req.body);
+  const unitsData = resolveUnitsArray(req.body);
 
   const hasAnyField =
     name_of_compound !== undefined ||
     owner_name !== undefined ||
     street_address !== undefined ||
+    !!loose.name_of_compound ||
+    !!loose.owner_name ||
+    !!loose.street_address ||
     unitsData !== undefined ||
     (Array.isArray(req.files) && req.files.length > 0);
 
@@ -180,8 +278,11 @@ const updateProperty = asyncHandler(async (req, res) => {
   }
 
   if (name_of_compound !== undefined) property.name_of_compound = String(name_of_compound).trim();
+  else if (loose.name_of_compound) property.name_of_compound = loose.name_of_compound;
   if (owner_name !== undefined) property.owner_name = String(owner_name).trim();
+  else if (loose.owner_name) property.owner_name = loose.owner_name;
   if (street_address !== undefined) property.street_address = String(street_address).trim();
+  else if (loose.street_address) property.street_address = loose.street_address;
 
   if (unitsData !== undefined) {
     const unitsParsed = unitsArraySchema.safeParse(unitsData);
