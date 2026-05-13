@@ -9,8 +9,8 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
     accountStatus: {
-      // For managers: pending/active/rejected
-      // For tenants: pending_approval/active/rejected
+      // Managers: pending | active | rejected
+      // Tenants: active | pending_lease_request | approved_awaiting_physical | active_resident
       type: String,
       default: "active",
     },

@@ -10,6 +10,7 @@ const { errorHandler } = require("./middlewares/errorHandler");
 const authRoutes = require("./routes/auth.routes");
 const propertyRoutes = require("./routes/property.routes");
 const leaseRoutes = require("./routes/lease.routes");
+const leaseRequestRoutes = require("./routes/leaseRequest.routes");
 const complaintRoutes = require("./routes/complaint.routes");
 const paymentRoutes = require("./routes/payment.routes");
 const telebirrWebhookRoutes = require("./routes/telebirrWebhook.routes");
@@ -53,6 +54,7 @@ function createApp() {
   app.use("/api/auth", authRoutes);
   app.use("/api/properties", propertyRoutes);
   app.use("/api/leases", leaseRoutes);
+  app.use("/api/lease-requests", leaseRequestRoutes);
   app.use("/api/complaints", complaintRoutes);
   app.use("/api/payments", paymentRoutes);
   app.use("/api/files", filesRoutes);

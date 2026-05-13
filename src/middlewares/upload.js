@@ -65,6 +65,45 @@ function uploadPropertyImagesAny() {
   return propertyImagesMulter.any();
 }
 
+/** Lease request: ID/passport + optional extras (same MIME rules as manager proofs) */
+const leaseRequestDocMulter = multer({
+  storage,
+  limits: { fileSize: env.UPLOAD_MAX_BYTES, files: 15 },
+  fileFilter: managerProofFileFilter,
+});
+
+const LEASE_REQUEST_ID_FIELDS = [
+  { name: "nationalId", maxCount: 1 },
+  { name: "national_id", maxCount: 1 },
+  { name: "idDocument", maxCount: 1 },
+  { name: "id_document", maxCount: 1 },
+  { name: "passport", maxCount: 1 },
+];
+
+function uploadLeaseRequestCreateFiles() {
+  return leaseRequestDocMulter.fields([
+    ...LEASE_REQUEST_ID_FIELDS,
+    { name: "additionalDocument", maxCount: 5 },
+    { name: "additional_document", maxCount: 5 },
+  ]);
+}
+
+function uploadLeaseRequestCompletePhysical() {
+  return leaseRequestDocMulter.fields([
+    { name: "digitalCopy", maxCount: 1 },
+    { name: "digital_copy", maxCount: 1 },
+    { name: "signedContractPhoto", maxCount: 10 },
+    { name: "signed_contract_photo", maxCount: 10 },
+  ]);
+}
+
+function uploadLeaseRequestAdditionalDocs() {
+  return leaseRequestDocMulter.fields([
+    { name: "additionalDocument", maxCount: 5 },
+    { name: "additional_document", maxCount: 5 },
+  ]);
+}
+
 function uploadSingle(field) {
   return baseUpload.single(field);
 }
@@ -83,4 +122,7 @@ module.exports = {
   uploadFields,
   uploadManagerRegistrationFiles,
   uploadPropertyImagesAny,
+  uploadLeaseRequestCreateFiles,
+  uploadLeaseRequestCompletePhysical,
+  uploadLeaseRequestAdditionalDocs,
 };

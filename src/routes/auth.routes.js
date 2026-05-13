@@ -1,6 +1,4 @@
 const express = require("express");
-const { authRequired } = require("../middlewares/auth");
-const { requireRole } = require("../middlewares/requireRole");
 const {
   loginController,
   registerManagerMultipartController,
@@ -24,7 +22,27 @@ router.post("/register/manager/json", registerManagerJsonController);
 // Visitor self-registration (read-only)
 router.post("/register/visitor", registerVisitorController);
 
-// Tenant self-registration (same flow as visitor; kebeleId required)
-router.post("/register/tenant", registerTenantController);
+// Common mistake: admin list is NOT under /api/auth — return JSON hint instead of plain 404
+router.get("/admin/manager/pending", (req, res) => {
+  res.status(404).json({
+    error: {
+      message:
+        "Wrong URL. Pending managers are listed at GET /api/admin/managers/pending (note: /api/admin and plural managers). Use Header Authorization: Bearer <token> from POST /api/auth/login — do not send admin email/password in a GET body.",
+      code: 404,
+      useMethod: "GET",
+      usePath: "/api/admin/managers/pending",
+    },
+  });
+});
+router.get("/admin/managers/pending", (req, res) => {
+  res.status(404).json({
+    error: {
+      message:
+        "Wrong URL prefix. Use GET /api/admin/managers/pending (under /api/admin, not /api/auth/admin). Authorization: Bearer <admin JWT from POST /api/auth/login>.",
+      code: 404,
+      usePath: "/api/admin/managers/pending",
+    },
+  });
+});
 
 module.exports = router;

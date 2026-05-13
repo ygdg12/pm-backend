@@ -21,13 +21,32 @@ const loginController = asyncHandler(async (req, res) => {
   res.json({ token, user: formatUserSafe(user) });
 });
 
+function pickFirstString(body, ...candidateKeys) {
+  if (!body || typeof body !== "object") return "";
+  for (const key of candidateKeys) {
+    if (body[key] != null && String(body[key]).trim() !== "") {
+      return String(body[key]).trim();
+    }
+  }
+  const lowerToValue = new Map();
+  for (const [k, v] of Object.entries(body)) {
+    if (v == null || String(v).trim() === "") continue;
+    lowerToValue.set(k.toLowerCase(), String(v).trim());
+  }
+  for (const key of candidateKeys) {
+    const v = lowerToValue.get(key.toLowerCase());
+    if (v) return v;
+  }
+  return "";
+}
+
 function pickManagerTextFields(body) {
   const b = body && typeof body === "object" ? body : {};
   return {
-    fullName: String(b.fullName ?? b.full_name ?? b.name ?? "").trim(),
-    email: String(b.email ?? b.emailAddress ?? "").trim(),
-    phoneNumber: String(b.phoneNumber ?? b.phone ?? b.phone_number ?? "").trim(),
-    password: String(b.password ?? "").trim(),
+    fullName: pickFirstString(b, "fullName", "fullname", "full_name", "name"),
+    email: pickFirstString(b, "email", "emailAddress", "mail"),
+    phoneNumber: pickFirstString(b, "phoneNumber", "phonenumber", "phone_number", "phone", "mobile"),
+    password: pickFirstString(b, "password"),
   };
 }
 
@@ -73,18 +92,21 @@ const registerManagerMultipartController = asyncHandler(async (req, res) => {
   if (!fullName || !email || !phoneNumber || !password) {
     throw badRequest(
       "fullName, email, phoneNumber and password are required as text fields in the multipart body. " +
-        "In Insomnia: Body → Multipart Form → add four Text fields and two File fields (do not use JSON body for this URL)."
+        "Field names are matched case-insensitively (e.g. fullname or fullName). " +
+        "In Insomnia: Body → Multipart Form → four Text fields and two File fields."
     );
   }
 
   const files = req.files || {};
   const ownershipFile = firstUploadedFile(files, [
     "propertyOwnershipProof",
+    "propertyownershipproof",
     "property_ownership_proof",
     "ownershipProof",
   ]);
   const telebirrFile = firstUploadedFile(files, [
     "telebirrMerchantAccountProof",
+    "telebirrmerchantaccountproof",
     "telebirr_merchant_account_proof",
     "telebirrProof",
   ]);
@@ -200,7 +222,7 @@ const registerManagerJsonController = asyncHandler(async (req, res) => {
 });
 
 const registerVisitorController = asyncHandler(async (req, res) => {
-  const { fullName, email, phoneNumber, password } = req.body || {};
+  const { fullName, email, phoneNumber, password } = pickManagerTextFields(req.body);
   if (!fullName || !email || !phoneNumber || !password) {
     throw badRequest("fullName, email, phoneNumber and password are required");
   }
@@ -210,7 +232,9 @@ const registerVisitorController = asyncHandler(async (req, res) => {
 });
 
 const registerTenantController = asyncHandler(async (req, res) => {
-  const { fullName, email, phoneNumber, password, kebeleId } = req.body || {};
+  const b = req.body || {};
+  const { fullName, email, phoneNumber, password } = pickManagerTextFields(b);
+  const kebeleId = pickFirstString(b, "kebeleId", "kebele_id", "kebeleid");
   if (!fullName || !email || !phoneNumber || !password || !kebeleId) {
     throw badRequest("fullName, email, phoneNumber, password and kebeleId are required");
   }

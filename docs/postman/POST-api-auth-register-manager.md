@@ -1,4 +1,4 @@
-﻿# POST /api/auth/register/manager
+# POST /api/auth/register/manager
 
 **Use this URL for real file uploads** (Insomnia, Postman, browsers). No URLs in the body — attach files from disk.
 
@@ -12,7 +12,7 @@
 
 | Name | Value |
 |------|--------|
-| fullName | Your name |
+| fullName | Your name (Insomnia may use `fullname` — both work) |
 | email | your@email.com |
 | phoneNumber | e.g. 0911000000 |
 | password | your password |

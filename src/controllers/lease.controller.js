@@ -73,7 +73,7 @@ const signLeaseManager = asyncHandler(async (req, res) => {
   await lease.save();
 
   // Landlord approval: activate tenant access.
-  await User.findByIdAndUpdate(lease.tenantId, { accountStatus: "active" }, { new: true }).exec();
+  await User.findByIdAndUpdate(lease.tenantId, { accountStatus: "active_resident" }, { new: true }).exec();
 
   res.json({ lease });
 });

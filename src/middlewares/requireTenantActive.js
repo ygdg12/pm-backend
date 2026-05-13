@@ -9,8 +9,12 @@ function requireTenantActive(req, res, next) {
     .exec()
     .then((u) => {
       if (!u) return next(unauthorized("Tenant account not found"));
-      if (u.accountStatus !== "active") return next(unauthorized("Tenant account not approved yet"));
-      req.user.accountStatus = u.accountStatus;
+      const allowed = new Set(["active", "pending_lease_request", "approved_awaiting_physical", "active_resident"]);
+      const st = u.accountStatus || "active";
+      if (!allowed.has(st)) {
+        return next(unauthorized("Tenant account cannot use this feature in its current status"));
+      }
+      req.user.accountStatus = st;
       return next();
     })
     .catch(next);

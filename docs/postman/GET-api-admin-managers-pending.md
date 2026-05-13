@@ -1,10 +1,14 @@
-﻿# GET /api/admin/managers/pending
+# GET /api/admin/managers/pending
 
 ## Postman Setup
 - Method: GET
 - URL: {{baseUrl}}/api/admin/managers/pending
-- Auth: Bearer admin token
-- Content-Type: None
+- Auth: **Bearer Token** — use the `token` returned from `POST /api/auth/login` with your **admin** email/password (not a JSON body on this GET).
+
+## Common mistakes
+- **Wrong:** `GET /api/auth/admin/manager/pending` — there is no `/api/auth/admin` in this API.
+- **Wrong:** `manager` (singular) — the path is **`managers`** (plural).
+- **Wrong:** Putting `email` / `password` in the **GET** body — use **Auth → Bearer Token** in Insomnia/Postman instead.
 
 ## Body
 ```
