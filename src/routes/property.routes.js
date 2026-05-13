@@ -1,7 +1,7 @@
 const express = require("express");
 const { authRequired } = require("../middlewares/auth");
 const { requireRole } = require("../middlewares/requireRole");
-const { uploadArray } = require("../middlewares/upload");
+const { uploadPropertyImagesAny } = require("../middlewares/upload");
 const {
   createProperty,
   updateProperty,
@@ -19,8 +19,8 @@ router.get("/", authRequired, requireRole(["tenant", "visitor"]), requireTenantA
 router.get("/:id", authRequired, requireRole(["tenant", "visitor", "manager", "admin"]), requireTenantActive, getPropertyById);
 
 // CRUD (property manager)
-router.post("/", authRequired, requireRole(["manager"]), uploadArray("images", 10), createProperty);
-router.patch("/:id", authRequired, requireRole(["manager"]), uploadArray("images", 10), updateProperty);
+router.post("/", authRequired, requireRole(["manager"]), uploadPropertyImagesAny(), createProperty);
+router.patch("/:id", authRequired, requireRole(["manager"]), uploadPropertyImagesAny(), updateProperty);
 router.delete("/:id", authRequired, requireRole(["manager"]), deleteProperty);
 
 module.exports = router;

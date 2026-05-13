@@ -38,18 +38,31 @@ const managerProofUpload = multer({
   fileFilter: managerProofFileFilter,
 });
 
-/** Field names Insomnia/Postman may use (camelCase + snake_case + short) */
+/** Field names Insomnia/Postman may use (camelCase + snake_case + short + lowercase) */
 const MANAGER_REGISTRATION_FILE_FIELDS = [
   { name: "propertyOwnershipProof", maxCount: 1 },
+  { name: "propertyownershipproof", maxCount: 1 },
   { name: "property_ownership_proof", maxCount: 1 },
   { name: "ownershipProof", maxCount: 1 },
   { name: "telebirrMerchantAccountProof", maxCount: 1 },
+  { name: "telebirrmerchantaccountproof", maxCount: 1 },
   { name: "telebirr_merchant_account_proof", maxCount: 1 },
   { name: "telebirrProof", maxCount: 1 },
 ];
 
 function uploadManagerRegistrationFiles() {
   return managerProofUpload.fields(MANAGER_REGISTRATION_FILE_FIELDS);
+}
+
+/** Property listing: accept any file field names (Insomnia often uses "file", "photo", etc.) — max 10 image parts */
+const propertyImagesMulter = multer({
+  storage,
+  limits: { fileSize: env.UPLOAD_MAX_BYTES, files: 10 },
+  fileFilter: imageOnlyFilter,
+});
+
+function uploadPropertyImagesAny() {
+  return propertyImagesMulter.any();
 }
 
 function uploadSingle(field) {
@@ -69,4 +82,5 @@ module.exports = {
   uploadArray,
   uploadFields,
   uploadManagerRegistrationFiles,
+  uploadPropertyImagesAny,
 };

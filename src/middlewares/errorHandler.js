@@ -6,10 +6,14 @@ function errorHandler(err, req, res, next) {
 
   if (err && err.name === "MulterError") {
     const code = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
-    const msg =
+    let msg =
       err.code === "LIMIT_FILE_SIZE"
         ? "Uploaded file is too large"
         : err.message || "File upload error";
+    if (err.code === "LIMIT_UNEXPECTED_FILE") {
+      msg =
+        "Unexpected file field name. For property images use any field name (e.g. images, image, photos) with image/* files — max 10 files.";
+    }
     if (res.headersSent) return next(err);
     return res.status(code).json({
       error: { message: msg, code, details: { multerCode: err.code } },

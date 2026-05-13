@@ -14,7 +14,7 @@
 | Name of property owner | `owner_name` | Text, non-empty |
 | Street address | `street_address` | Text, non-empty |
 | Square meters & lease price | `units` | JSON array string; at least **one** unit, each with `unit_label`, `square_meters` (>0), `lease_price` (>0) |
-| Images | `images` | At least **one** file (field name `images`; can add more up to 10) |
+| Images | `images`, `image`, `photos`, etc. | At least **one** `image/*` file. Up to **10** files; any multipart **File** field name is accepted (Insomnia often uses `file`). |
 
 ### Example `units` value (string in multipart)
 
@@ -24,7 +24,7 @@
 
 ## Body
 ```
-name_of_compound, owner_name, street_address, units (JSON string), images (file, at least 1)
+name_of_compound, owner_name, street_address, units (JSON string), image files (any field names, e.g. images or file — max 10, image/* only)
 ```
 
 ## Expected Result

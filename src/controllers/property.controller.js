@@ -57,6 +57,17 @@ function parseMaybeJson(value) {
   }
 }
 
+function normalizePropertyUploadFiles(req) {
+  const f = req.files;
+  if (!f) return [];
+  if (Array.isArray(f)) return f.slice(0, 10);
+  if (f.images) {
+    const imgs = Array.isArray(f.images) ? f.images : [f.images];
+    return imgs.slice(0, 10);
+  }
+  return [];
+}
+
 const createProperty = asyncHandler(async (req, res) => {
   const unitsRaw = parseMaybeJson(req.body?.units);
 
@@ -66,7 +77,7 @@ const createProperty = asyncHandler(async (req, res) => {
   }
 
   const images = [];
-  const uploadedImages = req.files || [];
+  const uploadedImages = normalizePropertyUploadFiles(req);
   for (const file of uploadedImages) {
     const fileId = await uploadBufferToGridFS({
       buffer: file.buffer,
@@ -136,7 +147,7 @@ const updateProperty = asyncHandler(async (req, res) => {
   }
 
   // If images were sent, replace existing images
-  const uploadedImages = req.files || [];
+  const uploadedImages = normalizePropertyUploadFiles(req);
   if (uploadedImages.length > 0) {
     const images = [];
     for (const file of uploadedImages) {

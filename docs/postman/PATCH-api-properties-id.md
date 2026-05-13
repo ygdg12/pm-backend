@@ -15,7 +15,7 @@
 Any of: name_of_compound, owner_name, street_address, units(JSON), images(file[])
 ```
 
-If you replace images, you must upload at least one new image file.
+If you replace images, upload at least one new image file (any file field name; `image/*` only).
 
 ## Expected Result
 - **200** on success.
