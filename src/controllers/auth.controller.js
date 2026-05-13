@@ -21,10 +21,25 @@ const loginController = asyncHandler(async (req, res) => {
   res.json({ token, user: formatUserSafe(user) });
 });
 
+function pickManagerTextFields(body) {
+  const b = body && typeof body === "object" ? body : {};
+  return {
+    fullName: String(b.fullName ?? b.full_name ?? b.name ?? "").trim(),
+    email: String(b.email ?? b.emailAddress ?? "").trim(),
+    phoneNumber: String(b.phoneNumber ?? b.phone ?? b.phone_number ?? "").trim(),
+    password: String(b.password ?? "").trim(),
+  };
+}
+
 const registerManagerController = asyncHandler(async (req, res) => {
-  const { fullName, email, phoneNumber, password } = req.body || {};
+  const { fullName, email, phoneNumber, password } = pickManagerTextFields(req.body);
   if (!fullName || !email || !phoneNumber || !password) {
-    throw badRequest("fullName, email, phoneNumber and password are required");
+    throw badRequest(
+      "fullName, email, phoneNumber and password are required. " +
+        "In Postman use Body → form-data (not raw JSON). " +
+        "Do not set a manual Content-Type header for multipart (let Postman add the boundary). " +
+        "Text keys must be exactly: fullName, email, phoneNumber, password."
+    );
   }
 
   const files = req.files || {};

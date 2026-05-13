@@ -47,6 +47,7 @@ function createApp() {
     telebirrWebhookRoutes
   );
 
+  app.use(express.urlencoded({ extended: true, limit: env.UPLOAD_MAX_BYTES }));
   app.use(express.json({ limit: env.UPLOAD_MAX_BYTES }));
 
   app.use("/api/auth", authRoutes);
