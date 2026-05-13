@@ -1,32 +1,53 @@
 ﻿# POST /api/auth/register/manager
 
-## Postman Setup
-- Method: POST
-- URL: {{baseUrl}}/api/auth/register/manager
-- Auth: No
-- Content-Type: **Do not set manually.** Choose **Body → form-data** and let Postman send `multipart/form-data` with a boundary.
+Two supported ways to register (pick one).
 
-## Body (form-data)
-Add **four text** rows and **two file** rows:
+---
 
-| Key | Type | Value |
-|-----|------|--------|
-| fullName | Text | e.g. Jane Manager |
-| email | Text | e.g. manager@example.com |
-| phoneNumber | Text | e.g. 0911000000 |
-| password | Text | your password |
-| propertyOwnershipProof | **File** | image (jpg/png) – proof of ownership |
-| telebirrMerchantAccountProof | **File** | image (jpg/png) – Telebirr merchant proof |
+## Option A — Raw JSON (easiest in Postman)
 
-Keys are **case-sensitive** (`fullName`, not `FullName` or `full_name` unless you use those aliases).
+- **Body** → **raw** → **JSON**
+- **Headers:** `Content-Type: application/json` (Postman sets this automatically for raw JSON)
 
-## If you see "fullName, email, phoneNumber and password are required"
-1. **Body** must be **form-data**, not **raw** JSON (this route does not read raw JSON for those fields together with files).
-2. Under **Headers**, **remove** any `Content-Type: multipart/form-data` you added by hand (without a boundary it breaks parsing and `req.body` stays empty).
-3. Ensure each form row has the **checkbox enabled** (not greyed out).
-4. File fields must be **type File** and images only (`image/*`).
+### Body shape
 
-## Expected Result
-- Creates manager account in pending state.
-- Success status: 201.
-- On validation/auth errors: 400, 401, 403, 404.
+```json
+{
+  "fullName": "Jane Manager",
+  "email": "manager@example.com",
+  "phoneNumber": "0911000000",
+  "password": "yourSecurePassword",
+  "propertyOwnershipProofBase64": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
+  "telebirrMerchantAccountProofBase64": "data:image/png;base64,iVBORw0KGgo..."
+}
+```
+
+Each proof field can be:
+
+- A **data URL**: `data:image/jpeg;base64,<payload>`
+- Or **plain base64** (server assumes `image/jpeg`)
+
+You can also use nested objects: `"propertyOwnershipProof": { "base64": "...", "filename": "doc.jpg" }`.
+
+---
+
+## Option B — multipart/form-data (files)
+
+- **Body** → **form-data**
+- **Do not** manually set `Content-Type` (let Postman add `boundary=...`)
+
+| Key | Type |
+|-----|------|
+| fullName | Text |
+| email | Text |
+| phoneNumber | Text |
+| password | Text |
+| propertyOwnershipProof | File (image) |
+| telebirrMerchantAccountProof | File (image) |
+
+---
+
+## Expected result
+
+- **201** — manager created, `accountStatus` pending until admin approves.
+- **400** — missing fields or invalid images.

@@ -8,6 +8,7 @@ const {
   registerTenantController,
 } = require("../controllers/auth.controller");
 const { uploadFields } = require("../middlewares/upload");
+const { maybeMultipart } = require("../middlewares/maybeMultipart");
 
 const router = express.Router();
 
@@ -15,12 +16,15 @@ const router = express.Router();
 router.post("/login", loginController);
 
 // Property Manager self-registration (admin approval required)
+// multipart/form-data: text fields + two image files, OR application/json: see controller (base64 proofs)
 router.post(
   "/register/manager",
-  uploadFields([
-    { name: "propertyOwnershipProof", maxCount: 1 },
-    { name: "telebirrMerchantAccountProof", maxCount: 1 },
-  ]),
+  maybeMultipart(
+    uploadFields([
+      { name: "propertyOwnershipProof", maxCount: 1 },
+      { name: "telebirrMerchantAccountProof", maxCount: 1 },
+    ])
+  ),
   registerManagerController
 );
 
