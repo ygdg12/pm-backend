@@ -29,7 +29,7 @@ Ensure Render Environment Variables include at least:
 If admin login returns `401 Invalid email or password`, check that those two variables are set in Render (not only in a local `.env` file), then redeploy or restart the service.
 
 ## API base
-- `/api/auth/*`
+- `/api/auth/*` (manager file upload: `POST /register/manager`; optional JSON: `POST /register/manager/json`)
 - `/api/properties/*`
 - `/api/leases/*`
 - `/api/complaints/*`

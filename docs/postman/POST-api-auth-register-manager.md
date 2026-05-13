@@ -1,53 +1,49 @@
 ﻿# POST /api/auth/register/manager
 
-Two supported ways to register (pick one).
+**Use this URL for real file uploads** (Insomnia, Postman, browsers). No URLs in the body — attach files from disk.
 
 ---
 
-## Option A — Raw JSON (easiest in Postman)
+## Insomnia
 
-- **Body** → **raw** → **JSON**
-- **Headers:** `Content-Type: application/json` (Postman sets this automatically for raw JSON)
+1. Method **POST** → URL `{{baseUrl}}/api/auth/register/manager`
+2. **Body** tab → choose **Multipart Form** (not JSON, not GraphQL)
+3. Add **Text** rows:
 
-### Body shape
+| Name | Value |
+|------|--------|
+| fullName | Your name |
+| email | your@email.com |
+| phoneNumber | e.g. 0911000000 |
+| password | your password |
 
-```json
-{
-  "fullName": "Jane Manager",
-  "email": "manager@example.com",
-  "phoneNumber": "0911000000",
-  "password": "yourSecurePassword",
-  "propertyOwnershipProofBase64": "data:image/jpeg;base64,/9j/4AAQSkZJRg...",
-  "telebirrMerchantAccountProofBase64": "data:image/png;base64,iVBORw0KGgo..."
-}
-```
+4. Add **File** rows (click **File** type, then choose a file from your computer):
 
-Each proof field can be:
+| Name | File |
+|------|------|
+| propertyOwnershipProof | ownership deed / scan (image or PDF) |
+| telebirrMerchantAccountProof | Telebirr merchant proof (image or PDF) |
 
-- A **data URL**: `data:image/jpeg;base64,<payload>`
-- Or **plain base64** (server assumes `image/jpeg`)
+5. Do **not** paste file URLs. Insomnia must send the file as multipart parts.
 
-You can also use nested objects: `"propertyOwnershipProof": { "base64": "...", "filename": "doc.jpg" }`.
+**Alternate field names** (if you prefer): `property_ownership_proof`, `ownershipProof`, `telebirr_merchant_account_proof`, `telebirrProof`.
 
----
-
-## Option B — multipart/form-data (files)
-
-- **Body** → **form-data**
-- **Do not** manually set `Content-Type` (let Postman add `boundary=...`)
-
-| Key | Type |
-|-----|------|
-| fullName | Text |
-| email | Text |
-| phoneNumber | Text |
-| password | Text |
-| propertyOwnershipProof | File (image) |
-| telebirrMerchantAccountProof | File (image) |
+**Accepted types:** `image/*`, `application/pdf`, and `application/octet-stream` (common when Insomnia picks a file).
 
 ---
 
-## Expected result
+## Postman
 
-- **201** — manager created, `accountStatus` pending until admin approves.
-- **400** — missing fields or invalid images.
+Body → **form-data** → Text + File rows with the same names as above.
+
+---
+
+## Optional: JSON + base64 only
+
+If your tool cannot send multipart at all, use **[POST /api/auth/register/manager/json](./POST-api-auth-register-manager-json.md)** instead.
+
+---
+
+## Response
+
+- **201** — manager created (pending admin approval).

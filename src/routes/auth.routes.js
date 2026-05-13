@@ -3,30 +3,23 @@ const { authRequired } = require("../middlewares/auth");
 const { requireRole } = require("../middlewares/requireRole");
 const {
   loginController,
-  registerManagerController,
+  registerManagerMultipartController,
+  registerManagerJsonController,
   registerVisitorController,
   registerTenantController,
 } = require("../controllers/auth.controller");
-const { uploadFields } = require("../middlewares/upload");
-const { maybeMultipart } = require("../middlewares/maybeMultipart");
+const { uploadManagerRegistrationFiles } = require("../middlewares/upload");
 
 const router = express.Router();
 
 // Public
 router.post("/login", loginController);
 
-// Property Manager self-registration (admin approval required)
-// multipart/form-data: text fields + two image files, OR application/json: see controller (base64 proofs)
-router.post(
-  "/register/manager",
-  maybeMultipart(
-    uploadFields([
-      { name: "propertyOwnershipProof", maxCount: 1 },
-      { name: "telebirrMerchantAccountProof", maxCount: 1 },
-    ])
-  ),
-  registerManagerController
-);
+// Property Manager — real file upload (Insomnia: Multipart Form, File fields — not URLs)
+router.post("/register/manager", uploadManagerRegistrationFiles(), registerManagerMultipartController);
+
+// Same registration via JSON + base64 (optional; tools that cannot send multipart)
+router.post("/register/manager/json", registerManagerJsonController);
 
 // Visitor self-registration (read-only)
 router.post("/register/visitor", registerVisitorController);
@@ -35,4 +28,3 @@ router.post("/register/visitor", registerVisitorController);
 router.post("/register/tenant", registerTenantController);
 
 module.exports = router;
-

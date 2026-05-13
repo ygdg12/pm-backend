@@ -31,13 +31,97 @@ function pickManagerTextFields(body) {
   };
 }
 
+function firstUploadedFile(files, keys) {
+  if (!files || typeof files !== "object") return null;
+  for (const key of keys) {
+    const arr = files[key];
+    if (Array.isArray(arr) && arr[0] && arr[0].buffer) return arr[0];
+  }
+  return null;
+}
+
+async function persistManagerWithProofs({ fullName, email, phoneNumber, password, ownershipFile, telebirrFile }) {
+  const propertyOwnershipProofFileId = await uploadBufferToGridFS({
+    buffer: ownershipFile.buffer,
+    filename: ownershipFile.originalname || "ownership",
+    contentType: ownershipFile.mimetype || "application/octet-stream",
+  });
+  const telebirrMerchantAccountProofFileId = await uploadBufferToGridFS({
+    buffer: telebirrFile.buffer,
+    filename: telebirrFile.originalname || "telebirr",
+    contentType: telebirrFile.mimetype || "application/octet-stream",
+  });
+
+  const manager = await registerManager({
+    fullName,
+    email,
+    phoneNumber,
+    password,
+    propertyOwnershipProofFileId,
+    telebirrMerchantAccountProofFileId,
+  });
+
+  return manager;
+}
+
 /**
- * Accepts raw base64 or data URL: data:image/png;base64,xxxx
+ * Multipart only — use in Insomnia: Body → Multipart Form, pick files (not URLs).
+ * Text fields: fullName, email, phoneNumber, password.
  */
-function parseImageBase64Field(value, defaultFilename) {
+const registerManagerMultipartController = asyncHandler(async (req, res) => {
+  const { fullName, email, phoneNumber, password } = pickManagerTextFields(req.body);
+  if (!fullName || !email || !phoneNumber || !password) {
+    throw badRequest(
+      "fullName, email, phoneNumber and password are required as text fields in the multipart body. " +
+        "In Insomnia: Body → Multipart Form → add four Text fields and two File fields (do not use JSON body for this URL)."
+    );
+  }
+
+  const files = req.files || {};
+  const ownershipFile = firstUploadedFile(files, [
+    "propertyOwnershipProof",
+    "property_ownership_proof",
+    "ownershipProof",
+  ]);
+  const telebirrFile = firstUploadedFile(files, [
+    "telebirrMerchantAccountProof",
+    "telebirr_merchant_account_proof",
+    "telebirrProof",
+  ]);
+
+  if (!ownershipFile) {
+    throw badRequest(
+      "Missing ownership proof file. Add a File field named propertyOwnershipProof (or property_ownership_proof / ownershipProof)."
+    );
+  }
+  if (!telebirrFile) {
+    throw badRequest(
+      "Missing Telebirr proof file. Add a File field named telebirrMerchantAccountProof (or telebirr_merchant_account_proof / telebirrProof)."
+    );
+  }
+
+  const manager = await persistManagerWithProofs({
+    fullName,
+    email,
+    phoneNumber,
+    password,
+    ownershipFile,
+    telebirrFile,
+  });
+
+  res.status(201).json({
+    manager: formatUserSafe(manager),
+    message: "Manager registration submitted. Admin approval required.",
+  });
+});
+
+/**
+ * Accepts raw base64 or data URL (images or PDF for proofs).
+ */
+function parseProofBase64Field(value, defaultFilename) {
   if (value == null) return null;
   if (typeof value === "object" && typeof value.base64 === "string") {
-    return parseImageBase64Field(value.base64, value.filename || defaultFilename);
+    return parseProofBase64Field(value.base64, value.filename || defaultFilename);
   }
   if (typeof value !== "string") return null;
   let str = value.trim();
@@ -51,13 +135,15 @@ function parseImageBase64Field(value, defaultFilename) {
     base64Part = dataUrl[2].trim();
   }
 
-  if (!contentType.startsWith("image/")) {
-    throw badRequest("Proof images must use an image/* content type");
+  const ct = contentType.toLowerCase();
+  const okMime = ct.startsWith("image/") || ct === "application/pdf";
+  if (!okMime) {
+    throw badRequest("Proof must be image/* or application/pdf (data URL or base64 with explicit type)");
   }
 
   const buffer = Buffer.from(base64Part, "base64");
   if (!buffer.length) {
-    throw badRequest("Invalid or empty base64 image data");
+    throw badRequest("Invalid or empty base64 data");
   }
 
   return {
@@ -67,69 +153,44 @@ function parseImageBase64Field(value, defaultFilename) {
   };
 }
 
-const registerManagerController = asyncHandler(async (req, res) => {
+/** Optional JSON path (base64); for real file picks use POST /register/manager with Multipart Form. */
+const registerManagerJsonController = asyncHandler(async (req, res) => {
   const { fullName, email, phoneNumber, password } = pickManagerTextFields(req.body);
   if (!fullName || !email || !phoneNumber || !password) {
-    throw badRequest(
-      "fullName, email, phoneNumber and password are required. " +
-        "Use either (1) Body → form-data with keys fullName, email, phoneNumber, password plus two image files, or " +
-        "(2) Body → raw JSON with the same text fields plus propertyOwnershipProofBase64 and telebirrMerchantAccountProofBase64 (image base64 or data URLs)."
-    );
+    throw badRequest("fullName, email, phoneNumber and password are required");
   }
 
-  let propertyOwnershipProofFileId;
-  let telebirrMerchantAccountProofFileId;
-
-  if (req.is("application/json")) {
-    const b = req.body || {};
-    const ownership = parseImageBase64Field(
-      b.propertyOwnershipProofBase64 ?? b.propertyOwnershipProof,
-      "property-ownership.jpg"
-    );
-    const telebirr = parseImageBase64Field(
-      b.telebirrMerchantAccountProofBase64 ?? b.telebirrMerchantAccountProof,
-      "telebirr-merchant.jpg"
-    );
-    if (!ownership) throw badRequest("propertyOwnershipProofBase64 (or propertyOwnershipProof with base64) is required for JSON body");
-    if (!telebirr) throw badRequest("telebirrMerchantAccountProofBase64 (or telebirrMerchantAccountProof with base64) is required for JSON body");
-
-    propertyOwnershipProofFileId = await uploadBufferToGridFS({
-      buffer: ownership.buffer,
-      filename: ownership.filename,
-      contentType: ownership.contentType,
-    });
-    telebirrMerchantAccountProofFileId = await uploadBufferToGridFS({
-      buffer: telebirr.buffer,
-      filename: telebirr.filename,
-      contentType: telebirr.contentType,
-    });
-  } else {
-    const files = req.files || {};
-    const propertyOwnershipProof = files.propertyOwnershipProof?.[0] || null;
-    const telebirrMerchantAccountProof = files.telebirrMerchantAccountProof?.[0] || null;
-
-    if (!propertyOwnershipProof) throw badRequest("propertyOwnershipProof file is required");
-    if (!telebirrMerchantAccountProof) throw badRequest("telebirrMerchantAccountProof file is required");
-
-    propertyOwnershipProofFileId = await uploadBufferToGridFS({
-      buffer: propertyOwnershipProof.buffer,
-      filename: propertyOwnershipProof.originalname,
-      contentType: propertyOwnershipProof.mimetype,
-    });
-    telebirrMerchantAccountProofFileId = await uploadBufferToGridFS({
-      buffer: telebirrMerchantAccountProof.buffer,
-      filename: telebirrMerchantAccountProof.originalname,
-      contentType: telebirrMerchantAccountProof.mimetype,
-    });
+  const b = req.body || {};
+  const ownership = parseProofBase64Field(
+    b.propertyOwnershipProofBase64 ?? b.propertyOwnershipProof,
+    "property-ownership.jpg"
+  );
+  const telebirr = parseProofBase64Field(
+    b.telebirrMerchantAccountProofBase64 ?? b.telebirrMerchantAccountProof,
+    "telebirr-merchant.pdf"
+  );
+  if (!ownership) {
+    throw badRequest("propertyOwnershipProofBase64 (or propertyOwnershipProof with base64) is required");
+  }
+  if (!telebirr) {
+    throw badRequest("telebirrMerchantAccountProofBase64 (or telebirrMerchantAccountProof with base64) is required");
   }
 
-  const manager = await registerManager({
+  const manager = await persistManagerWithProofs({
     fullName,
     email,
     phoneNumber,
     password,
-    propertyOwnershipProofFileId,
-    telebirrMerchantAccountProofFileId,
+    ownershipFile: {
+      buffer: ownership.buffer,
+      originalname: ownership.filename,
+      mimetype: ownership.contentType,
+    },
+    telebirrFile: {
+      buffer: telebirr.buffer,
+      originalname: telebirr.filename,
+      mimetype: telebirr.contentType,
+    },
   });
 
   res.status(201).json({
@@ -166,8 +227,8 @@ const registerTenantController = asyncHandler(async (req, res) => {
 
 module.exports = {
   loginController,
-  registerManagerController,
+  registerManagerMultipartController,
+  registerManagerJsonController,
   registerVisitorController,
   registerTenantController,
 };
-

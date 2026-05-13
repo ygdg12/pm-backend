@@ -11,7 +11,8 @@ Set Bearer token in Authorization tab for protected endpoints.
 
 ## 2) Auth
 - [POST /api/auth/login](./POST-api-auth-login.md)
-- [POST /api/auth/register/manager](./POST-api-auth-register-manager.md)
+- [POST /api/auth/register/manager](./POST-api-auth-register-manager.md) (multipart files)
+- [POST /api/auth/register/manager/json](./POST-api-auth-register-manager-json.md) (JSON + base64)
 - [POST /api/auth/register/visitor](./POST-api-auth-register-visitor.md)
 - [POST /api/auth/register/tenant](./POST-api-auth-register-tenant.md)
 
