@@ -24,9 +24,9 @@ Ensure Render Environment Variables include at least:
 - `MONGODB_URI` (or `DATABASE_URL`)
 - `JWT_SECRET`
 
-Optional (recommended for seeded admin login):
-- `ADMIN_EMAIL`
-- `ADMIN_PASSWORD`
+**Admin sign-in:** also set both `ADMIN_EMAIL` and `ADMIN_PASSWORD`. On every deploy/start the server upserts the single admin account and **syncs the password from `ADMIN_PASSWORD`**, so it matches what you set in Render. Use `POST /api/auth/login` with that email and password.
+
+If admin login returns `401 Invalid email or password`, check that those two variables are set in Render (not only in a local `.env` file), then redeploy or restart the service.
 
 ## API base
 - `/api/auth/*`
