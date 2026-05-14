@@ -1,0 +1,25 @@
+[
+  {
+    "action": "mark_under_review"
+  },
+  {
+    "action": "reject",
+    "rejectionReason": "Replace with your reason."
+  },
+  {
+    "action": "request_additional_documents",
+    "additionalDocumentsNote": "Replace with what the tenant should upload."
+  },
+  {
+    "action": "schedule_meeting",
+    "scheduledMeetingAt": "2026-06-15T10:00:00.000Z",
+    "meetingLocation": "Optional: office or meeting place",
+    "meetingNotes": "Optional notes"
+  },
+  {
+    "action": "approve_digital",
+    "appointmentDate": "2026-06-20T09:00:00.000Z",
+    "officeLocation": "Replace with office or building address",
+    "requiredDocumentsBring": "Replace with list of documents tenant must bring"
+  }
+]

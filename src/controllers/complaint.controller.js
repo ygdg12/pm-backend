@@ -6,7 +6,12 @@ const { uploadBufferToGridFS } = require("../services/gridfs.service");
 const { v4: uuidv4 } = require("uuid");
 
 const createComplaint = asyncHandler(async (req, res) => {
-  const { propertyId, unitId, title, category, description } = req.body || {};
+  const b = req.body || {};
+  const propertyId = b.propertyId || b.property_id;
+  const unitId = b.unitId || b.unit_id;
+  const title = b.title;
+  const category = b.category;
+  const description = b.description;
   if (!propertyId || !title || !category) throw badRequest("propertyId, title and category are required");
 
   const property = await Property.findById(propertyId).exec();
