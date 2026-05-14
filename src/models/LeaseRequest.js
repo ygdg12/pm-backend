@@ -23,9 +23,9 @@ const leaseRequestSchema = new mongoose.Schema(
     numberOfOccupants: { type: Number, required: true, min: 1 },
     messageToLandlord: { type: String, trim: true, default: "" },
 
-    /** National ID / passport (GridFS) */
-    idDocumentFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
-    additionalDocumentFileIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+    /** National ID / passport (Cloudinary URL) */
+    idDocumentUrl: { type: String, default: null },
+    additionalDocumentUrls: { type: [String], default: [] },
 
     status: {
       type: String,
@@ -48,8 +48,8 @@ const leaseRequestSchema = new mongoose.Schema(
 
     /** After in-person completion */
     leaseAgreementId: { type: mongoose.Schema.Types.ObjectId, ref: "LeaseAgreement", default: null },
-    digitalCopyFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
-    signedContractPhotoFileIds: { type: [mongoose.Schema.Types.ObjectId], default: [] },
+    digitalCopyUrl: { type: String, default: null },
+    signedContractPhotoUrls: { type: [String], default: [] },
 
     physicalCompletedAt: { type: Date, default: null },
     physicalCompletionNotes: { type: String, trim: true, default: "" },

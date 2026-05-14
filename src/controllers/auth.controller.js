@@ -1,6 +1,6 @@
 const { asyncHandler } = require("../utils/asyncHandler");
 const { login, registerManager, registerVisitor, registerTenant } = require("../services/auth.service");
-const { uploadBufferToGridFS } = require("../services/gridfs.service");
+const { uploadBufferToCloudinary } = require("../services/cloudinary.service");
 const { badRequest } = require("../utils/httpError");
 
 const formatUserSafe = (u) => ({
@@ -60,15 +60,15 @@ function firstUploadedFile(files, keys) {
 }
 
 async function persistManagerWithProofs({ fullName, email, phoneNumber, password, ownershipFile, telebirrFile }) {
-  const propertyOwnershipProofFileId = await uploadBufferToGridFS({
+  const { secureUrl: propertyOwnershipProofUrl } = await uploadBufferToCloudinary({
     buffer: ownershipFile.buffer,
     filename: ownershipFile.originalname || "ownership",
-    contentType: ownershipFile.mimetype || "application/octet-stream",
+    folder: "pm-backend/manager-proofs/ownership",
   });
-  const telebirrMerchantAccountProofFileId = await uploadBufferToGridFS({
+  const { secureUrl: telebirrMerchantAccountProofUrl } = await uploadBufferToCloudinary({
     buffer: telebirrFile.buffer,
     filename: telebirrFile.originalname || "telebirr",
-    contentType: telebirrFile.mimetype || "application/octet-stream",
+    folder: "pm-backend/manager-proofs/telebirr",
   });
 
   const manager = await registerManager({
@@ -76,8 +76,8 @@ async function persistManagerWithProofs({ fullName, email, phoneNumber, password
     email,
     phoneNumber,
     password,
-    propertyOwnershipProofFileId,
-    telebirrMerchantAccountProofFileId,
+    propertyOwnershipProofUrl,
+    telebirrMerchantAccountProofUrl,
   });
 
   return manager;

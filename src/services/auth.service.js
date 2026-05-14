@@ -57,7 +57,14 @@ async function login({ email, password }) {
   return { user, token };
 }
 
-async function registerManager({ fullName, email, phoneNumber, password, propertyOwnershipProofFileId, telebirrMerchantAccountProofFileId }) {
+async function registerManager({
+  fullName,
+  email,
+  phoneNumber,
+  password,
+  propertyOwnershipProofUrl,
+  telebirrMerchantAccountProofUrl,
+}) {
   if (!email) throw badRequest("email is required");
   if (!password) throw badRequest("password is required");
 
@@ -76,8 +83,8 @@ async function registerManager({ fullName, email, phoneNumber, password, propert
     email: emailNorm,
     phoneNumber,
     passwordHash,
-    propertyOwnershipProofFileId: propertyOwnershipProofFileId || null,
-    telebirrMerchantAccountProofFileId: telebirrMerchantAccountProofFileId || null,
+    propertyOwnershipProofUrl: propertyOwnershipProofUrl || null,
+    telebirrMerchantAccountProofUrl: telebirrMerchantAccountProofUrl || null,
   });
 
   return user;

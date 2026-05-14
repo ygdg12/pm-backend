@@ -3,7 +3,7 @@ const { asyncHandler } = require("../utils/asyncHandler");
 const Complaint = require("../models/Complaint");
 const Property = require("../models/Property");
 const { badRequest, notFound, forbidden } = require("../utils/httpError");
-const { uploadBufferToGridFS } = require("../services/gridfs.service");
+const { uploadBufferToCloudinary } = require("../services/cloudinary.service");
 const { v4: uuidv4 } = require("uuid");
 
 const COMPLAINT_STATUSES = ["open", "under_review", "in_progress", "resolved"];
@@ -46,12 +46,14 @@ const createComplaint = asyncHandler(async (req, res) => {
   const files = req.files || {};
   const photoFile = files.photo ? files.photo[0] : null;
 
-  const photoFileId = photoFile
-    ? await uploadBufferToGridFS({
-        buffer: photoFile.buffer,
-        filename: photoFile.originalname,
-        contentType: photoFile.mimetype,
-      })
+  const photoUrl = photoFile
+    ? (
+        await uploadBufferToCloudinary({
+          buffer: photoFile.buffer,
+          filename: photoFile.originalname || "complaint-photo",
+          folder: "pm-backend/complaints",
+        })
+      ).secureUrl
     : null;
 
   const tenant_name = req.user.fullName || req.user.email || "Tenant";
@@ -64,7 +66,7 @@ const createComplaint = asyncHandler(async (req, res) => {
     title,
     category,
     description: description || "",
-    photoFileId,
+    photoUrl,
     propertyId: property._id,
     unitId: unitId || property.units?.[0]?._id,
     managerId: property.managerId,

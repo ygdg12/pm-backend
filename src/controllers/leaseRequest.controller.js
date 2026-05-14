@@ -4,7 +4,7 @@ const LeaseRequest = require("../models/LeaseRequest");
 const LeaseAgreement = require("../models/LeaseAgreement");
 const Property = require("../models/Property");
 const User = require("../models/User");
-const { uploadBufferToGridFS } = require("../services/gridfs.service");
+const { uploadBufferToCloudinary } = require("../services/cloudinary.service");
 const { badRequest, notFound, forbidden } = require("../utils/httpError");
 
 const PRE_PHYSICAL_OPEN = [
@@ -151,11 +151,13 @@ const createLeaseRequest = asyncHandler(async (req, res) => {
 
   await assertNoDuplicateOpenRequest(req.user.userId, property._id, unit._id);
 
-  const idDocumentFileId = await uploadBufferToGridFS({
-    buffer: idPart.buffer,
-    filename: idPart.originalname || "id-document",
-    contentType: idPart.mimetype || "application/octet-stream",
-  });
+  const idDocumentUrl = (
+    await uploadBufferToCloudinary({
+      buffer: idPart.buffer,
+      filename: idPart.originalname || "id-document",
+      folder: "pm-backend/lease-requests/id-documents",
+    })
+  ).secureUrl;
 
   const lr = await LeaseRequest.create({
     tenantId: req.user.userId,
@@ -166,7 +168,7 @@ const createLeaseRequest = asyncHandler(async (req, res) => {
     leaseDurationMonths,
     numberOfOccupants,
     messageToLandlord,
-    idDocumentFileId,
+    idDocumentUrl,
     status: "pending_review",
   });
 
@@ -232,15 +234,15 @@ const uploadAdditionalDocuments = asyncHandler(async (req, res) => {
 
   const ids = [];
   for (const f of files) {
-    const fid = await uploadBufferToGridFS({
+    const { secureUrl } = await uploadBufferToCloudinary({
       buffer: f.buffer,
       filename: f.originalname || "additional-document",
-      contentType: f.mimetype || "application/octet-stream",
+      folder: "pm-backend/lease-requests/additional-docs",
     });
-    ids.push(fid);
+    ids.push(secureUrl);
   }
 
-  lr.additionalDocumentFileIds = [...(lr.additionalDocumentFileIds || []), ...ids];
+  lr.additionalDocumentUrls = [...(lr.additionalDocumentUrls || []), ...ids];
   lr.status = "under_review";
   await lr.save();
   await syncTenantLeaseAccountStatus(lr.tenantId);
@@ -368,26 +370,30 @@ const completePhysicalLease = asyncHandler(async (req, res) => {
   const files = req.files || [];
   const digitalPart = firstUploadedBuffer(files, ["digitalCopy", "digital_copy"]);
   if (digitalPart) {
-    lr.digitalCopyFileId = await uploadBufferToGridFS({
-      buffer: digitalPart.buffer,
-      filename: digitalPart.originalname || "lease-digital-copy",
-      contentType: digitalPart.mimetype || "application/octet-stream",
-    });
+    lr.digitalCopyUrl = (
+      await uploadBufferToCloudinary({
+        buffer: digitalPart.buffer,
+        filename: digitalPart.originalname || "lease-digital-copy",
+        folder: "pm-backend/lease-requests/lease-copies",
+      })
+    ).secureUrl;
   }
 
   const photoParts = collectFieldFiles(files, ["signedContractPhoto", "signed_contract_photo"]);
-  const photoIds = [];
+  const photoUrls = [];
   for (const f of photoParts) {
-    photoIds.push(
-      await uploadBufferToGridFS({
-        buffer: f.buffer,
-        filename: f.originalname || "signed-contract",
-        contentType: f.mimetype || "application/octet-stream",
-      })
+    photoUrls.push(
+      (
+        await uploadBufferToCloudinary({
+          buffer: f.buffer,
+          filename: f.originalname || "signed-contract",
+          folder: "pm-backend/lease-requests/signed-contracts",
+        })
+      ).secureUrl
     );
   }
-  if (photoIds.length) {
-    lr.signedContractPhotoFileIds = [...(lr.signedContractPhotoFileIds || []), ...photoIds];
+  if (photoUrls.length) {
+    lr.signedContractPhotoUrls = [...(lr.signedContractPhotoUrls || []), ...photoUrls];
   }
 
   const tenantSignName = String(b.tenantSignatoryName || b.tenant_signatory_name || tenant.fullName || "Tenant").trim();

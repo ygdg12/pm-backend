@@ -5,7 +5,7 @@ const Transaction = require("../models/Transaction");
 const LeaseAgreement = require("../models/LeaseAgreement");
 const { generateReference } = require("../services/telebirr.service");
 const { verifyWebhookSignature } = require("../services/telebirr.service");
-const { uploadBufferToGridFS } = require("../services/gridfs.service");
+const { uploadBufferToCloudinary } = require("../services/cloudinary.service");
 
 const STATUS_DISPLAY = {
   pending: "Pending payment",
@@ -35,9 +35,8 @@ function serializeTransaction(tx) {
   const o = tx.toObject ? tx.toObject() : { ...tx };
   if (o._id) o.id = String(o._id);
   o.statusDisplay = STATUS_DISPLAY[o.status] || o.status;
-  if (o.proofFileId) {
-    o.proofFileIdStr = String(o.proofFileId);
-    o.proofDownloadPath = `/api/files/${String(o.proofFileId)}`;
+  if (o.proofUrl) {
+    o.proofDownloadPath = o.proofUrl;
   }
   return o;
 }
@@ -72,6 +71,7 @@ const initiatePayment = asyncHandler(async (req, res) => {
   });
 
   res.status(201).json({
+    transactionId: transaction._id.toString(),
     transaction: {
       ...serializeTransaction(transaction),
       referenceId: transaction.telebirr?.referenceId,
@@ -110,7 +110,7 @@ const uploadPaymentProof = asyncHandler(async (req, res) => {
   if (tx.status !== "pending") {
     throw badRequest("You can only upload a receipt while the payment is pending (before manager review or confirmation)");
   }
-  if (tx.proofFileId) throw badRequest("A receipt was already uploaded for this transaction");
+  if (tx.proofUrl) throw badRequest("A receipt was already uploaded for this transaction");
 
   const files = req.files || [];
   const proofPart = firstUploadedBuffer(files, [
@@ -133,17 +133,23 @@ const uploadPaymentProof = asyncHandler(async (req, res) => {
   const b = req.body || {};
   const tenantProofNote = String(b.tenantProofNote || b.tenant_proof_note || "").trim();
 
-  const proofFileId = await uploadBufferToGridFS({
-    buffer: proofPart.buffer,
-    filename: proofPart.originalname || "payment-proof",
-    contentType: proofPart.mimetype || "application/octet-stream",
-  });
+  const proofUrl = (
+    await uploadBufferToCloudinary({
+      buffer: proofPart.buffer,
+      filename: proofPart.originalname || "payment-proof",
+      folder: "pm-backend/payments/proofs",
+    })
+  ).secureUrl;
 
   const result = await Transaction.updateOne(
-    { _id: tx._id, status: "pending", proofFileId: null },
+    {
+      _id: tx._id,
+      status: "pending",
+      $or: [{ proofUrl: { $exists: false } }, { proofUrl: null }, { proofUrl: "" }],
+    },
     {
       $set: {
-        proofFileId,
+        proofUrl,
         proofSubmittedAt: new Date(),
         tenantProofNote,
         status: "pending_review",

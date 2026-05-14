@@ -20,7 +20,7 @@ const propertySchema = new mongoose.Schema(
 
     units: { type: [unitSchema], default: [] },
 
-    images: { type: [mongoose.Schema.Types.ObjectId], default: [] }, // stored in GridFS
+    images: { type: [String], default: [] }, // Cloudinary secure URLs
   },
   { timestamps: true }
 );

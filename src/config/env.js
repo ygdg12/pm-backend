@@ -24,6 +24,12 @@ const envSchema = z.object({
   UPLOAD_MAX_BYTES: z.coerce.number().int().positive().optional().default(20 * 1024 * 1024),
 
   TELEBIRR_WEBHOOK_SECRET: z.string().optional().default(""),
+
+  /** Prefer `CLOUDINARY_URL` from the dashboard; or set the three vars below. */
+  CLOUDINARY_URL: z.string().optional(),
+  CLOUDINARY_CLOUD_NAME: z.string().optional(),
+  CLOUDINARY_API_KEY: z.string().optional(),
+  CLOUDINARY_API_SECRET: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(runtimeEnv);

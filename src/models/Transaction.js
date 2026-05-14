@@ -19,8 +19,8 @@ const transactionSchema = new mongoose.Schema(
       index: true,
     },
 
-    /** Receipt / screenshot uploaded by tenant (GridFS uploads bucket). */
-    proofFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    /** Receipt / screenshot (Cloudinary secure URL) */
+    proofUrl: { type: String, default: null },
     proofSubmittedAt: { type: Date, default: null },
     tenantProofNote: { type: String, trim: true, default: "" },
 

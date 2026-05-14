@@ -57,6 +57,7 @@ function createApp() {
   app.use("/api/lease-requests", leaseRequestRoutes);
   app.use("/api/complaints", complaintRoutes);
   app.use("/api/payments", paymentRoutes);
+  app.use("/api", paymentRoutes.proofAliasRouter);
   app.use("/api/files", filesRoutes);
   app.use("/api/admin", adminRoutes);
 

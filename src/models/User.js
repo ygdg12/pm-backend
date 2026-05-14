@@ -25,9 +25,9 @@ const userSchema = new mongoose.Schema(
     // Auth
     passwordHash: { type: String },
 
-    // Manager specific (proofs are stored in GridFS)
-    telebirrMerchantAccountProofFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
-    propertyOwnershipProofFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    // Manager specific (proof documents on Cloudinary — secure URLs)
+    telebirrMerchantAccountProofUrl: { type: String, default: null },
+    propertyOwnershipProofUrl: { type: String, default: null },
   },
   { timestamps: true }
 );

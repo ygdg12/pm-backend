@@ -1,7 +1,7 @@
 const { asyncHandler } = require("../utils/asyncHandler");
 const { badRequest, notFound } = require("../utils/httpError");
 const Property = require("../models/Property");
-const { uploadBufferToGridFS } = require("../services/gridfs.service");
+const { uploadBufferToCloudinary } = require("../services/cloudinary.service");
 const { z } = require("zod");
 
 const unitSchema = z.object({
@@ -218,12 +218,12 @@ const createProperty = asyncHandler(async (req, res) => {
   const images = [];
   const uploadedImages = normalizePropertyUploadFiles(req);
   for (const file of uploadedImages) {
-    const fileId = await uploadBufferToGridFS({
+    const { secureUrl } = await uploadBufferToCloudinary({
       buffer: file.buffer,
-      filename: file.originalname,
-      contentType: file.mimetype,
+      filename: file.originalname || "property-image",
+      folder: "pm-backend/properties",
     });
-    images.push(fileId);
+    images.push(secureUrl);
   }
 
   const { name_of_compound, owner_name, street_address } = pickCompoundFields(req.body);
@@ -295,12 +295,12 @@ const updateProperty = asyncHandler(async (req, res) => {
   if (uploadedImages.length > 0) {
     const images = [];
     for (const file of uploadedImages) {
-      const fileId = await uploadBufferToGridFS({
+      const { secureUrl } = await uploadBufferToCloudinary({
         buffer: file.buffer,
-        filename: file.originalname,
-        contentType: file.mimetype,
+        filename: file.originalname || "property-image",
+        folder: "pm-backend/properties",
       });
-      images.push(fileId);
+      images.push(secureUrl);
     }
     property.images = images;
   }

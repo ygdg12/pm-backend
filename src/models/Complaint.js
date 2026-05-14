@@ -13,8 +13,8 @@ const complaintSchema = new mongoose.Schema(
     category: { type: String, required: true, trim: true },
     description: { type: String, trim: true },
 
-    // Optional attachment stored in GridFS
-    photoFileId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    // Optional attachment (Cloudinary secure URL)
+    photoUrl: { type: String, default: null },
 
     status: {
       type: String,
