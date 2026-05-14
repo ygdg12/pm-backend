@@ -22,6 +22,9 @@ router.post("/register/manager/json", registerManagerJsonController);
 // Visitor self-registration (read-only)
 router.post("/register/visitor", registerVisitorController);
 
+// Tenant self-registration (requires kebeleId)
+router.post("/register/tenant", registerTenantController);
+
 // Common mistake: admin list is NOT under /api/auth — return JSON hint instead of plain 404
 router.get("/admin/manager/pending", (req, res) => {
   res.status(404).json({
