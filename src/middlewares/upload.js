@@ -93,6 +93,17 @@ function uploadLeaseRequestAdditionalDocs() {
   ]);
 }
 
+/** Multipart form fields only (no files). Use when clients send PATCH/POST as multipart/form-data — otherwise req.body stays empty. */
+function parseMultipartFormFieldsIfNeeded() {
+  return (req, res, next) => {
+    const ct = String(req.headers["content-type"] || "").toLowerCase();
+    if (ct.includes("multipart/form-data")) {
+      return multer({ storage, limits: { fieldSize: 1_000_000 } }).none()(req, res, next);
+    }
+    return next();
+  };
+}
+
 function uploadSingle(field) {
   return baseUpload.single(field);
 }
@@ -114,4 +125,5 @@ module.exports = {
   uploadLeaseRequestCreateFiles,
   uploadLeaseRequestCompletePhysical,
   uploadLeaseRequestAdditionalDocs,
+  parseMultipartFormFieldsIfNeeded,
 };

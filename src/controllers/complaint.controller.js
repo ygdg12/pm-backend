@@ -25,6 +25,9 @@ function complaintLookupQuery(idParam) {
 function withComplaintDisplay(doc) {
   const o = doc.toObject ? doc.toObject() : { ...doc };
   o.statusDisplay = STATUS_DISPLAY[o.status] || o.status;
+  const note = o.managerNote != null ? String(o.managerNote) : "";
+  o.managerNote = note;
+  o.manager_note = note;
   return o;
 }
 
@@ -119,26 +122,35 @@ const updateComplaintStatus = asyncHandler(async (req, res) => {
 
   const complaint = await Complaint.findOne(lookup).exec();
   if (!complaint) throw notFound("Complaint not found");
-  if (complaint.managerId.toString() !== req.user.userId) throw forbidden("Not allowed");
+  if (String(complaint.managerId) !== String(req.user.userId)) throw forbidden("Not allowed");
 
   const b = req.body || {};
-  const status = String(b.status || "").trim();
+  const status = String(b.status ?? b.complaint_status ?? "").trim();
   if (!status) throw badRequest("status is required");
   if (!COMPLAINT_STATUSES.includes(status)) {
     throw badRequest(`status must be one of: ${COMPLAINT_STATUSES.join(", ")}`);
   }
 
+  const existingNote = complaint.managerNote ? String(complaint.managerNote).trim() : "";
   const noteKeyPresent = b.managerNote !== undefined || b.manager_note !== undefined;
-  complaint.status = status;
+  let nextNote = existingNote;
   if (noteKeyPresent) {
-    complaint.managerNote = String(b.managerNote ?? b.manager_note ?? "").trim();
-  } else if (status === "under_review" && !(complaint.managerNote && String(complaint.managerNote).trim())) {
-    complaint.managerNote = "Your complaint is under review.";
+    nextNote = String(b.managerNote ?? b.manager_note ?? "").trim();
+  } else if (status === "under_review" && !existingNote) {
+    nextNote = "Your complaint is under review.";
   }
-  await complaint.save();
+
+  const result = await Complaint.updateOne(
+    { _id: complaint._id },
+    { $set: { status, managerNote: nextNote } },
+    { runValidators: true }
+  ).exec();
+  if (result.matchedCount === 0) throw notFound("Complaint not found");
+
+  const updated = await Complaint.findById(complaint._id).exec();
 
   res.json({
-    complaint: withComplaintDisplay(complaint),
+    complaint: withComplaintDisplay(updated),
     notification: { message: "Complaint status was updated." },
   });
 });
