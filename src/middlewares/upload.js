@@ -93,6 +93,11 @@ function uploadLeaseRequestAdditionalDocs() {
   ]);
 }
 
+/** Payment proof: receipt/screenshot (images + PDF). Any field name; controller picks first matching file. */
+function uploadPaymentProofFiles() {
+  return leaseRequestDocMulter.any();
+}
+
 /** Multipart form fields only (no files). Use when clients send PATCH/POST as multipart/form-data — otherwise req.body stays empty. */
 function parseMultipartFormFieldsIfNeeded() {
   return (req, res, next) => {
@@ -126,4 +131,5 @@ module.exports = {
   uploadLeaseRequestCompletePhysical,
   uploadLeaseRequestAdditionalDocs,
   parseMultipartFormFieldsIfNeeded,
+  uploadPaymentProofFiles,
 };

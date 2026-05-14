@@ -36,7 +36,7 @@ const rejectManager = asyncHandler(async (req, res) => {
 
 const transactionsSummaryByProperty = asyncHandler(async (req, res) => {
   const summary = await Transaction.aggregate([
-    { $match: { status: { $in: ["pending", "success", "failed"] } } },
+    { $match: { status: { $in: ["pending", "pending_review", "success", "failed"] } } },
     {
       $lookup: {
         from: "properties",
