@@ -17,18 +17,36 @@ const telebirrWebhookRoutes = require("./routes/telebirrWebhook.routes");
 const filesRoutes = require("./routes/files.routes");
 const adminRoutes = require("./routes/admin.routes");
 
+function normalizeOrigin(url) {
+  return String(url || "")
+    .trim()
+    .replace(/\/+$/, "");
+}
+
+/** Supports `*`, a single origin, or comma-separated origins (e.g. Vite + production). */
+function buildCorsOptions() {
+  const raw = String(env.CORS_ORIGIN ?? "").trim();
+  if (!raw || raw === "*") {
+    return { origin: true, credentials: false };
+  }
+  const allowed = raw.split(",").map(normalizeOrigin).filter(Boolean);
+  return {
+    origin(origin, cb) {
+      if (!origin) return cb(null, true);
+      if (allowed.includes(normalizeOrigin(origin))) return cb(null, true);
+      return cb(null, false);
+    },
+    credentials: true,
+  };
+}
+
 function createApp() {
   const app = express();
 
   app.disable("x-powered-by");
 
   app.use(helmet());
-  app.use(
-    cors({
-      origin: env.CORS_ORIGIN,
-      credentials: env.CORS_ORIGIN !== "*",
-    })
-  );
+  app.use(cors(buildCorsOptions()));
 
   app.use(morgan("dev"));
   app.use(

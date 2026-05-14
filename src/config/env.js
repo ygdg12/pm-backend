@@ -20,7 +20,7 @@ const envSchema = z.object({
   ADMIN_EMAIL: z.string().optional(),
   ADMIN_PASSWORD: z.string().optional(),
 
-  CORS_ORIGIN: z.string().optional().default("*"),
+  CORS_ORIGIN: z.string().optional().default("http://localhost:5173"),
   UPLOAD_MAX_BYTES: z.coerce.number().int().positive().optional().default(20 * 1024 * 1024),
 
   TELEBIRR_WEBHOOK_SECRET: z.string().optional().default(""),
