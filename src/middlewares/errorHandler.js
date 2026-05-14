@@ -23,6 +23,11 @@ function errorHandler(err, req, res, next) {
   const statusCode = err instanceof HttpError ? err.statusCode : 500;
   const message = err instanceof HttpError ? err.message : "Internal Server Error";
 
+  if (statusCode >= 500 || !(err instanceof HttpError)) {
+    // eslint-disable-next-line no-console
+    console.error("[pm-backend]", req.method, req.originalUrl, statusCode, err && err.stack ? err.stack : err);
+  }
+
   const payload = {
     error: {
       message,

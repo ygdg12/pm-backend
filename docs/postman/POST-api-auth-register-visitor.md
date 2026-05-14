@@ -7,6 +7,15 @@
 - Content-Type: application/json
 
 ## Body
+JSON. Required fields (aliases accepted, case-insensitive keys):
+
+| Field | Aliases |
+|-------|---------|
+| `fullName` | `full_name`, `name`, `fullname` |
+| `email` | `mail`, `emailAddress` |
+| `phoneNumber` | `phone_number`, `phone`, `mobile`, `tel`, `telephone`, `mobile_phone` |
+| `password` | — |
+
 ```
 {"fullName":"Visitor User","email":"visitor@example.com","phoneNumber":"0911000000","password":"secret123"}
 ```

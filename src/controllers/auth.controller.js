@@ -45,7 +45,7 @@ function pickManagerTextFields(body) {
   return {
     fullName: pickFirstString(b, "fullName", "fullname", "full_name", "name"),
     email: pickFirstString(b, "email", "emailAddress", "mail"),
-    phoneNumber: pickFirstString(b, "phoneNumber", "phonenumber", "phone_number", "phone", "mobile"),
+    phoneNumber: pickFirstString(b, "phoneNumber", "phonenumber", "phone_number", "phone", "mobile", "tel", "telephone", "mobile_phone", "mobilephone"),
     password: pickFirstString(b, "password"),
   };
 }
@@ -64,11 +64,13 @@ async function persistManagerWithProofs({ fullName, email, phoneNumber, password
     buffer: ownershipFile.buffer,
     filename: ownershipFile.originalname || "ownership",
     folder: "pm-backend/manager-proofs/ownership",
+    mimetype: ownershipFile.mimetype,
   });
   const { secureUrl: telebirrMerchantAccountProofUrl } = await uploadBufferToCloudinary({
     buffer: telebirrFile.buffer,
     filename: telebirrFile.originalname || "telebirr",
     folder: "pm-backend/manager-proofs/telebirr",
+    mimetype: telebirrFile.mimetype,
   });
 
   const manager = await registerManager({
@@ -224,7 +226,9 @@ const registerManagerJsonController = asyncHandler(async (req, res) => {
 const registerVisitorController = asyncHandler(async (req, res) => {
   const { fullName, email, phoneNumber, password } = pickManagerTextFields(req.body);
   if (!fullName || !email || !phoneNumber || !password) {
-    throw badRequest("fullName, email, phoneNumber and password are required");
+    throw badRequest(
+      "Required fields for visitor registration: fullName (aliases: full_name, name), email, phoneNumber (aliases: phone_number, phone, mobile, tel, telephone), password."
+    );
   }
 
   const { user, token } = await registerVisitor({ fullName, email, phoneNumber, password });

@@ -30,6 +30,8 @@
 
 **Accepted types:** `image/*`, `application/pdf`, and `application/octet-stream` (common when Insomnia picks a file).
 
+PDFs are uploaded to Cloudinary as **`raw`** assets (images use **`auto`**). If upload fails, the API returns **400** with `error.message` describing the Cloudinary error (not a generic 500).
+
 ---
 
 ## Postman

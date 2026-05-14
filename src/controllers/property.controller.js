@@ -3,6 +3,7 @@ const { badRequest, notFound } = require("../utils/httpError");
 const Property = require("../models/Property");
 const { uploadBufferToCloudinary } = require("../services/cloudinary.service");
 const { z } = require("zod");
+const mongoose = require("mongoose");
 
 const unitSchema = z.object({
   unit_label: z.string().min(1),
@@ -12,6 +13,31 @@ const unitSchema = z.object({
 });
 
 const unitsArraySchema = z.array(unitSchema).min(1, "At least one unit is required with square_meters and lease_price");
+
+/** Turn Zod flatten() into a short human-readable message for API clients. */
+function formatZodUnitsIssues(flat) {
+  if (!flat || typeof flat !== "object") return "";
+  const parts = [];
+  if (Array.isArray(flat.formErrors) && flat.formErrors.length) {
+    parts.push(`form: ${flat.formErrors.join("; ")}`);
+  }
+  const fieldErrors = flat.fieldErrors;
+  if (fieldErrors && typeof fieldErrors === "object") {
+    for (const [key, msgs] of Object.entries(fieldErrors)) {
+      if (Array.isArray(msgs) && msgs.length) parts.push(`${key}: ${msgs.join("; ")}`);
+    }
+  }
+  return parts.join(" | ");
+}
+
+function assertValidPropertyObjectId(id, hintForList) {
+  if (!mongoose.Types.ObjectId.isValid(id) || !/^[a-fA-F0-9]{24}$/.test(String(id))) {
+    throw badRequest(
+      hintForList ||
+        "Invalid property id. Expected a 24-character hexadecimal MongoDB _id (e.g. from GET /api/properties or GET /api/properties/mine)."
+    );
+  }
+}
 
 function assertCompletePropertyListing(data) {
   const name = String(data.name_of_compound ?? "").trim();
@@ -116,6 +142,10 @@ function pickCompoundFields(body) {
     "name of the compound",
     "compound name",
     "compound",
+    "title",
+    "property_title",
+    "property title",
+    "compound_title",
   ]);
   const owner = valueForFieldAliases(body, [
     "owner_name",
@@ -123,8 +153,18 @@ function pickCompoundFields(body) {
     "name of the property owner",
     "property owner",
     "owner",
+    "landlord_name",
+    "landlord name",
   ]);
-  const street = valueForFieldAliases(body, ["street_address", "street address", "address", "location"]);
+  const street = valueForFieldAliases(body, [
+    "street_address",
+    "street address",
+    "address",
+    "location",
+    "full_address",
+    "full address",
+    "street",
+  ]);
   return {
     name_of_compound: String(name ?? body?.name_of_compound ?? "").trim(),
     owner_name: String(owner ?? body?.owner_name ?? "").trim(),
@@ -208,9 +248,11 @@ const createProperty = asyncHandler(async (req, res) => {
 
   const unitsParsed = unitsArraySchema.safeParse(unitsData);
   if (!unitsParsed.success) {
+    const hint = formatZodUnitsIssues(unitsParsed.error.flatten());
     throw badRequest(
-      "Invalid units payload. Expected a JSON array of objects with unit_label, square_meters, lease_price (all positive). " +
-        "Example: [{\"unit_label\":\"A1\",\"square_meters\":120,\"lease_price\":15000}]",
+      "Invalid units payload. Each unit must have unit_label (non-empty), square_meters and lease_price (numbers greater than 0), and optional availability (boolean). " +
+        (hint ? `Details: ${hint}. ` : "") +
+        'Example: [{"unit_label":"A1","square_meters":120,"lease_price":15000}]',
       unitsParsed.error.flatten()
     );
   }
@@ -251,6 +293,7 @@ const createProperty = asyncHandler(async (req, res) => {
 
 const updateProperty = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  assertValidPropertyObjectId(id);
 
   const property = await Property.findById(id).exec();
   if (!property) throw notFound("Property not found");
@@ -286,7 +329,13 @@ const updateProperty = asyncHandler(async (req, res) => {
 
   if (unitsData !== undefined) {
     const unitsParsed = unitsArraySchema.safeParse(unitsData);
-    if (!unitsParsed.success) throw badRequest("Invalid units payload", unitsParsed.error.flatten());
+    if (!unitsParsed.success) {
+      const hint = formatZodUnitsIssues(unitsParsed.error.flatten());
+      throw badRequest(
+        "Invalid units payload. Each unit needs unit_label, square_meters > 0, lease_price > 0. " + (hint ? `Details: ${hint}` : ""),
+        unitsParsed.error.flatten()
+      );
+    }
     property.units = unitsParsed.data;
   }
 
@@ -319,6 +368,8 @@ const updateProperty = asyncHandler(async (req, res) => {
 
 const deleteProperty = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  assertValidPropertyObjectId(id);
+
   const property = await Property.findById(id).exec();
   if (!property) throw notFound("Property not found");
 
@@ -334,6 +385,10 @@ const listProperties = asyncHandler(async (req, res) => {
   const { q, location, minPrice, maxPrice, minSize, availability } = req.query || {};
 
   const filter = {};
+  if (req.user && req.user.role === "manager") {
+    filter.managerId = req.user.userId;
+  }
+
   const unitMatch = {};
 
   if (q) {
@@ -390,8 +445,19 @@ const listProperties = asyncHandler(async (req, res) => {
   res.json({ properties: normalized });
 });
 
+/** Manager-only: properties owned by the authenticated manager (same response shape as GET /api/properties). */
+const listMyProperties = asyncHandler(async (req, res) => {
+  const properties = await Property.find({ managerId: req.user.userId }).sort({ createdAt: -1 }).limit(100).exec();
+  const normalized = properties.map((p) => ({ ...p.toObject(), units: p.units }));
+  res.json({ properties: normalized });
+});
+
 const getPropertyById = asyncHandler(async (req, res) => {
   const { id } = req.params;
+  assertValidPropertyObjectId(
+    id,
+    "Invalid property id. Use a 24-character MongoDB id, or for your own listings use GET /api/properties/mine."
+  );
   const property = await Property.findById(id).exec();
   if (!property) throw notFound("Property not found");
   res.json({ property });
@@ -402,6 +468,7 @@ module.exports = {
   updateProperty,
   deleteProperty,
   listProperties,
+  listMyProperties,
   getPropertyById,
 };
 

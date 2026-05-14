@@ -7,15 +7,18 @@ const {
   updateProperty,
   deleteProperty,
   listProperties,
+  listMyProperties,
   getPropertyById,
 } = require("../controllers/property.controller");
 
 const router = express.Router();
 
-// Search/browse (tenant + visitor)
+// Search/browse (tenant + visitor + manager sees own listings only via managerId filter)
 const { requireTenantActive } = require("../middlewares/requireTenantActive");
 
-router.get("/", authRequired, requireRole(["tenant", "visitor"]), requireTenantActive, listProperties);
+// Must be registered before "/:id" so "mine" is not parsed as an ObjectId
+router.get("/mine", authRequired, requireRole(["manager"]), listMyProperties);
+router.get("/", authRequired, requireRole(["tenant", "visitor", "manager"]), requireTenantActive, listProperties);
 router.get("/:id", authRequired, requireRole(["tenant", "visitor", "manager", "admin"]), requireTenantActive, getPropertyById);
 
 // CRUD (property manager)

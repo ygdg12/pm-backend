@@ -17,7 +17,8 @@ Set Bearer token in Authorization tab for protected endpoints.
 - [POST /api/auth/register/tenant](./POST-api-auth-register-tenant.md)
 
 ## 3) Properties
-- [GET /api/properties](./GET-api-properties.md)
+- [GET /api/properties](./GET-api-properties.md) (tenant, visitor, manager — managers see only their listings)
+- [GET /api/properties/mine](./GET-api-properties-mine.md) (manager — own listings, same `{ "properties": [...] }` shape)
 - [GET /api/properties/:id](./GET-api-properties-id.md)
 - [POST /api/properties](./POST-api-properties.md)
 - [PATCH /api/properties/:id](./PATCH-api-properties-id.md)
