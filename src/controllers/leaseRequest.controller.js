@@ -27,7 +27,36 @@ const STATUS_DISPLAY = {
 function withDisplay(reqDoc) {
   const o = reqDoc.toObject ? reqDoc.toObject() : { ...reqDoc };
   o.statusDisplay = STATUS_DISPLAY[o.status] || o.status;
+  if (o.messageToLandlord !== undefined) o.message = o.messageToLandlord;
+  if (o.desiredMoveInDate !== undefined) o.moveInDate = o.desiredMoveInDate;
   return o;
+}
+
+function attachTenantProperty(doc, o) {
+  if (doc.tenantId && typeof doc.tenantId === "object") {
+    o.tenant = {
+      _id: doc.tenantId._id,
+      fullName: doc.tenantId.fullName,
+      email: doc.tenantId.email,
+      phoneNumber: doc.tenantId.phoneNumber,
+      kebeleId: doc.tenantId.kebeleId,
+      accountStatus: doc.tenantId.accountStatus,
+    };
+  }
+  if (doc.propertyId && typeof doc.propertyId === "object") {
+    o.property = {
+      _id: doc.propertyId._id,
+      name: doc.propertyId.name || doc.propertyId.title,
+      title: doc.propertyId.title,
+      address: doc.propertyId.address,
+      city: doc.propertyId.city,
+    };
+  }
+  return o;
+}
+
+function withDisplayPopulated(doc) {
+  return attachTenantProperty(doc, withDisplay(doc));
 }
 
 async function syncTenantLeaseAccountStatus(tenantId) {
@@ -123,7 +152,9 @@ const createLeaseRequest = asyncHandler(async (req, res) => {
   const desiredMoveInDate = parseDate(b.desiredMoveInDate || b.desired_move_in_date, "desiredMoveInDate");
   const leaseDurationMonths = parsePositiveInt(b.leaseDurationMonths || b.lease_duration_months, "leaseDurationMonths");
   const numberOfOccupants = parsePositiveInt(b.numberOfOccupants || b.number_of_occupants, "numberOfOccupants");
-  const messageToLandlord = String(b.messageToLandlord || b.message_to_landlord || "").trim();
+  const messageToLandlord = String(
+    b.messageToLandlord || b.message_to_landlord || b.message || ""
+  ).trim();
 
   const files = req.files || [];
   const idPart = firstUploadedBuffer(files, [
@@ -191,19 +222,24 @@ const getLeaseRequestById = asyncHandler(async (req, res) => {
   const { id } = req.params;
   if (!mongoose.Types.ObjectId.isValid(id)) throw badRequest("Invalid id");
 
-  const lr = await LeaseRequest.findById(id).exec();
+  const lr = await LeaseRequest.findById(id)
+    .populate("tenantId", "fullName email phoneNumber kebeleId accountStatus")
+    .populate("propertyId", "name title address city")
+    .exec();
   if (!lr) throw notFound("Lease request not found");
 
   const role = req.user.role;
   const uid = req.user.userId;
+  const tenantId = lr.tenantId?._id?.toString() || lr.tenantId?.toString();
+  const managerId = lr.managerId?.toString();
   if (role === "admin") {
-    return res.json({ leaseRequest: withDisplay(lr) });
+    return res.json({ leaseRequest: withDisplayPopulated(lr) });
   }
-  if (role === "tenant" && lr.tenantId.toString() !== uid) throw forbidden("Not allowed");
-  if (role === "manager" && lr.managerId.toString() !== uid) throw forbidden("Not allowed");
+  if (role === "tenant" && tenantId !== uid) throw forbidden("Not allowed");
+  if (role === "manager" && managerId !== uid) throw forbidden("Not allowed");
   if (role === "visitor") throw forbidden("Not allowed");
 
-  res.json({ leaseRequest: withDisplay(lr) });
+  res.json({ leaseRequest: withDisplayPopulated(lr) });
 });
 
 const listManagerLeaseRequests = asyncHandler(async (req, res) => {
@@ -216,8 +252,14 @@ const listManagerLeaseRequests = asyncHandler(async (req, res) => {
   const status = req.query.status;
   if (status) q.status = status;
 
-  const list = await LeaseRequest.find(q).sort({ createdAt: -1 }).limit(100).exec();
-  res.json({ leaseRequests: list.map((x) => withDisplay(x)) });
+  const list = await LeaseRequest.find(q)
+    .sort({ createdAt: -1 })
+    .limit(100)
+    .populate("tenantId", "fullName email phoneNumber kebeleId accountStatus")
+    .populate("propertyId", "name title address city")
+    .exec();
+
+  res.json({ leaseRequests: list.map((doc) => withDisplayPopulated(doc)) });
 });
 
 const uploadAdditionalDocuments = asyncHandler(async (req, res) => {
