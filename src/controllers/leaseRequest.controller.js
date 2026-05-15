@@ -243,12 +243,23 @@ const getLeaseRequestById = asyncHandler(async (req, res) => {
 });
 
 const listManagerLeaseRequests = asyncHandler(async (req, res) => {
-  const q = { managerId: req.user.userId };
+  const managerOid = new mongoose.Types.ObjectId(req.user.userId);
+
+  const propertyFilter = { managerId: managerOid };
   const propertyId = req.query.propertyId || req.query.property_id;
   if (propertyId) {
     if (!mongoose.Types.ObjectId.isValid(propertyId)) throw badRequest("Invalid propertyId");
-    q.propertyId = propertyId;
+    propertyFilter._id = new mongoose.Types.ObjectId(propertyId);
   }
+
+  const propertyIds = await Property.find(propertyFilter).distinct("_id").exec();
+
+  const orClauses = [{ managerId: managerOid }];
+  if (propertyIds.length > 0) {
+    orClauses.push({ propertyId: { $in: propertyIds } });
+  }
+
+  const q = { $or: orClauses };
   const status = req.query.status;
   if (status) q.status = status;
 
